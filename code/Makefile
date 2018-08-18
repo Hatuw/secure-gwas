@@ -1,4 +1,5 @@
-CPP = /data/cb/hhcho/local/bin/clang++
+# CPP = /data/cb/hhcho/local/bin/clang++
+CPP = /usr/bin/clang++
 INCPATHS = -I/data/cb/hhcho/local/include
 CFLAGS = -g -Wall -O1 $(INCPATHS) -march=native -std=c++11 -pthread
 LDLIBS = -lssl -lcrypto -lntl -lgmp -lm -ldl
