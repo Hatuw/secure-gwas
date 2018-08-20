@@ -23,7 +23,7 @@ bool MPCEnv::Initialize(int pid, vector< pair<int, int> > &pairs) {
   this->pid = pid;
   this->clock_start = chrono::steady_clock::now();
   // debug = false;
-  debug = true;
+  debug = false;
 
   if (!SetupChannels(pairs)) {
     cout << "MPCEnv::Initialize: failed to initialize communication channels" << endl;
@@ -703,19 +703,30 @@ void MPCEnv::InnerProd(ZZ_p& c, Vec<ZZ_p>& a) {
 void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
   if (debug) cout << "Householder: " << x.length() << endl;
 
+  cout << "\n[+] Begin Householder()" << endl;
+
+  cout << "Input Vec<ZZ_p>& v:\n" << v << endl;
+  cout << "Input Vec<ZZ_p>& x:\n" << x << endl;
+
   int n = x.length();
 
   Vec<ZZ_p> xr, xm;
   BeaverPartition(xr, xm, x);
+  cout << "BeaverPartition(xr, xm, x); result x:\n" << x << endl;
 
   Vec<ZZ_p> xdot;
   Init(xdot, 1);
+  cout << "Init(xdot, 1); result xdot:\n" << xdot << endl;
   BeaverInnerProd(xdot[0], xr, xm);
+  cout << "BeaverInnerProd(xdot[0], xr, xm);" << endl;
   BeaverReconstruct(xdot);
+  cout << "BeaverReconstruct(xdot); result xdot:\n" << xdot << endl;
   Trunc(xdot);
+  cout << "Trunc(xdot); result xdot:\n" << xdot << endl;
 
   Vec<ZZ_p> xnorm, dummy;
   FPSqrt(xnorm, dummy, xdot);
+  cout << "FPSqrt(xnorm, dummy, xdot); result xdot:\n" << xdot << endl;
 
   Vec<ZZ_p> x1;
   x1.SetLength(1);
@@ -764,8 +775,13 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
 
   Init(v, n);
   BeaverMult(v, vr, vm, invr, invm);
+  cout << "BeaverMult(v, vr, vm, invr, invm); result: v\n" << v << endl;
   BeaverReconstruct(v);
+  cout << "BeaverReconstruct(v); result: v\n" << v << endl;
   Trunc(v);
+  cout << "Trunc(v); result: v\n" << v << endl;
+
+  cout << "[-] End Householder()\n" << endl;
 }
 
 void MPCEnv::QRFactSquare(Mat<ZZ_p>& Q, Mat<ZZ_p>& R, Mat<ZZ_p>& A) {

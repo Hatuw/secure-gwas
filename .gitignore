@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+bin/
+cache/
+out/
+log/
+test_data_2/

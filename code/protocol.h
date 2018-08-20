@@ -2523,4 +2523,14 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
+bool test_protocol(MPCEnv& mpc, int pid) {
+  // return gwas_protocol(mpc, pid);
+  Vec<ZZ_p> test_vec;
+  mpc.RandVec(test_vec, 10);
+  // Mat<ZZ> test_mat;
+  // mpc.RandMat(test_mat, 10, 10, 20);
+  mpc.Householder(test_vec, test_vec);
+  return true;
+}
+
 #endif
