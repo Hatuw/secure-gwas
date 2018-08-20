@@ -712,21 +712,15 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
 
   Vec<ZZ_p> xr, xm;
   BeaverPartition(xr, xm, x);
-  cout << "BeaverPartition(xr, xm, x); result x:\n" << x << endl;
 
   Vec<ZZ_p> xdot;
   Init(xdot, 1);
-  cout << "Init(xdot, 1); result xdot:\n" << xdot << endl;
   BeaverInnerProd(xdot[0], xr, xm);
-  cout << "BeaverInnerProd(xdot[0], xr, xm);" << endl;
   BeaverReconstruct(xdot);
-  cout << "BeaverReconstruct(xdot); result xdot:\n" << xdot << endl;
   Trunc(xdot);
-  cout << "Trunc(xdot); result xdot:\n" << xdot << endl;
 
   Vec<ZZ_p> xnorm, dummy;
   FPSqrt(xnorm, dummy, xdot);
-  cout << "FPSqrt(xnorm, dummy, xdot); result xdot:\n" << xdot << endl;
 
   Vec<ZZ_p> x1;
   x1.SetLength(1);
@@ -734,11 +728,13 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
 
   Vec<ZZ_p> x1sign;
   IsPositive(x1sign, x1);
+  cout << "IsPositive(x1sign, x1); result x1sign:\n" << x1sign << endl;
 
   x1sign *= 2;
   if (pid == 1) {
     x1sign[0] -= 1;
   }
+  cout << "2[c] - 1, result x1sign:\n" << x1sign << endl;
 
   Vec<ZZ_p> shift;
   MultElem(shift, xnorm, x1sign);
@@ -750,6 +746,7 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
   BeaverMult(dot_shift, xr[0], xm[0], sr, sm);
   BeaverReconstruct(dot_shift);
   Trunc(dot_shift);
+  cout << "Truncate(dot_shift); result dot_shift:\n" << dot_shift << endl;
 
   Vec<ZZ_p> vdot;
   vdot.SetLength(1);
@@ -775,11 +772,12 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
 
   Init(v, n);
   BeaverMult(v, vr, vm, invr, invm);
-  cout << "BeaverMult(v, vr, vm, invr, invm); result: v\n" << v << endl;
   BeaverReconstruct(v);
-  cout << "BeaverReconstruct(v); result: v\n" << v << endl;
   Trunc(v);
   cout << "Trunc(v); result: v\n" << v << endl;
+
+  cout << "Output Vec<ZZ_p>& v:\n" << v << endl;
+  cout << "Output Vec<ZZ_p>& x:\n" << x << endl;
 
   cout << "[-] End Householder()\n" << endl;
 }

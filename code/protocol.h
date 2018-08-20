@@ -2525,11 +2525,23 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
 bool test_protocol(MPCEnv& mpc, int pid) {
   // return gwas_protocol(mpc, pid);
-  Vec<ZZ_p> test_vec;
-  mpc.RandVec(test_vec, 10);
+
+  int vec_len = 5;
+  Vec<ZZ_p> test_vec, test_vec2;
+
+  test_vec.SetLength(vec_len);
+  test_vec2.SetLength(vec_len);
+  for (int i = 0; i < vec_len; i++) {
+    test_vec[i] = 0;
+    test_vec2[i] = 1;
+  }
+  // mpc.RandVec(test_vec, 5);
+  // mpc.RandVec(test_vec2, vec_len);
+
   // Mat<ZZ> test_mat;
   // mpc.RandMat(test_mat, 10, 10, 20);
-  mpc.Householder(test_vec, test_vec);
+
+  mpc.Householder(test_vec, test_vec2);
   return true;
 }
 
