@@ -182,7 +182,7 @@ public:
         b[1] = a;
   
         Vec<T> tmp;
-        for (int p = 2; p <= pow; p++) {
+        for (int p = 2; p <= pow; p++) { // fot t in {2, ..., d}
           if (pid == 1) {
             b[p] = arpow[p - 2];
           }

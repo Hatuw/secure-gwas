@@ -720,7 +720,7 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
   Trunc(xdot);
 
   Vec<ZZ_p> xnorm, dummy;
-  FPSqrt(xnorm, dummy, xdot);
+  FPSqrt(xnorm, dummy, xdot); // ||x||, 1/||x||
 
   Vec<ZZ_p> x1;
   x1.SetLength(1);
@@ -755,7 +755,7 @@ void MPCEnv::Householder(Vec<ZZ_p>& v, Vec<ZZ_p>& x) {
   }
 
   Vec<ZZ_p> vnorm_inv;
-  FPSqrt(dummy, vnorm_inv, vdot);
+  FPSqrt(dummy, vnorm_inv, vdot); // ||u||, 1/||u||
 
   ZZ_p invr, invm;
   BeaverPartition(invr, invm, vnorm_inv[0]);
@@ -1020,7 +1020,7 @@ void MPCEnv::Tridiag(Mat<ZZ_p>& T, Mat<ZZ_p>& Q, Mat<ZZ_p>& A) {
     clear(T);
     if (pid == 1) {
       for (int i = 0; i < n; i++) {
-        Q[i][i] = one;
+        Q[i][i] = one; // CP2: E_f(I_{d*d})
       }
     }
   }
@@ -1143,10 +1143,10 @@ void MPCEnv::EigenDecomp(Mat<ZZ_p>& V, Vec<ZZ_p>& L, Mat<ZZ_p>& A) {
   for (int i = n - 1; i >= 1; i--) {
     cout << "EigenDecomp: " << i << "-th eigenvalue" << endl;
     for (int it = 0; it < Param::ITER_PER_EVAL; it++) {
-      ZZ_p shift = Ap[i][i];
+      ZZ_p shift = Ap[i][i]; // L_{i, i}
       if (pid > 0) {
         for (int j = 0; j < Ap.NumCols(); j++) {
-          Ap[j][j] -= shift;
+          Ap[j][j] -= shift; // L_{:i, :i} - [\miu] I_{i*i}
         }
       }
 
@@ -1166,7 +1166,7 @@ void MPCEnv::EigenDecomp(Mat<ZZ_p>& V, Vec<ZZ_p>& L, Mat<ZZ_p>& A) {
       Vsub.SetDims(i + 1, n);
       if (pid > 0) {
         for (int j = 0; j < i + 1; j++) {
-          Vsub[j] = V[j];
+          Vsub[j] = V[j]; // Q_[:, :i]
         }
       }
 
@@ -1565,7 +1565,7 @@ void MPCEnv::FPDiv(Vec<ZZ_p>& c, Vec<ZZ_p>& a, Vec<ZZ_p>& b) {
     return;
   }
 
-  int niter = 2 * ceil(log2(((double) Param::NBIT_K) / 3.5)) + 1;
+  int niter = 2 * ceil(log2(((double) Param::NBIT_K) / 3.5)) + 1; // theta <- 2 ceil(logs_2(k/3.5)) + 1
 
   /* Initial approximation: 1 / x_scaled ~= 5.9430 - 10 * x_scaled + 5 * x_scaled^2 */
   Vec<ZZ_p> s, s_sqrt;
@@ -1672,8 +1672,8 @@ void MPCEnv::Trunc(Mat<ZZ_p>& a, int k, int m) {
     r -= r_mask;
     r_low -= r_low_mask;
 
-    SendMat(r, 2);
-    SendMat(r_low, 2);
+    SendMat(r, 2); // r
+    SendMat(r_low, 2); // r_tail
   } else if (pid == 2) {
     ReceiveMat(r, 0, a.NumRows(), a.NumCols());
     ReceiveMat(r_low, 0, a.NumRows(), a.NumCols());
