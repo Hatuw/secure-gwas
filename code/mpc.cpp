@@ -1319,14 +1319,14 @@ void MPCEnv::IsPositive(Vec<ZZ_p>& b, Vec<ZZ_p>& a) {
   if (debug) cout << "IsPositive: " << a.length() << endl; 
 
   int n = a.length();
-  int nbits = ZZ_bits[0];
+  int nbits = ZZ_bits[0]; // L <- BitLength(q)
   int fid = 2;
 
   Vec<ZZ_p> r;
   Mat<ZZ> r_bits;
   if (pid == 0) {
     RandVec(r, n);
-    NumToBits(r_bits, r, nbits);
+    NumToBits(r_bits, r, nbits); // BinaryRepresentation(r, L)
 
     SwitchSeed(1);
     Vec<ZZ_p> r_mask;
@@ -1340,7 +1340,7 @@ void MPCEnv::IsPositive(Vec<ZZ_p>& b, Vec<ZZ_p>& a) {
     Mod(r_bits, fid);
 
     SendVec(r, 2);
-    SendMat(r_bits, 2, fid);
+    SendMat(r_bits, 2, fid); // ShareSecretSmallField
   } else if (pid == 2) {
     ReceiveVec(r, 0, n);
     ReceiveMat(r_bits, 0, n, nbits, fid);
@@ -1358,7 +1358,7 @@ void MPCEnv::IsPositive(Vec<ZZ_p>& b, Vec<ZZ_p>& a) {
     c = 2 * a + r;
   }
 
-  RevealSym(c);
+  RevealSym(c); // 2 E_f(x) + r
 
   Mat<ZZ> c_bits;
   if (pid == 0) {
@@ -1375,7 +1375,7 @@ void MPCEnv::IsPositive(Vec<ZZ_p>& b, Vec<ZZ_p>& a) {
   c_xor_r.SetLength(n);
   if (pid > 0) {
     for (int i = 0; i < n; i++) {
-      c_xor_r[i] = r_bits[i][nbits-1] - 2 * c_bits[i][nbits-1] * r_bits[i][nbits-1];
+      c_xor_r[i] = r_bits[i][nbits-1] - 2 * c_bits[i][nbits-1] * r_bits[i][nbits-1]; // [[a_L]] - 2b_L * [[a_L]]
       if (pid == 1) {
         c_xor_r[i] += c_bits[i][nbits-1];
       }
@@ -1388,7 +1388,7 @@ void MPCEnv::IsPositive(Vec<ZZ_p>& b, Vec<ZZ_p>& a) {
   if (pid > 0) {
     lsb *= 2;
     for (int i = 0; i < n; i++) {
-      lsb[i] -= no_overflow[i] + c_xor_r[i];
+      lsb[i] -= no_overflow[i] + c_xor_r[i]; // u -= [[a<?b]] + [[a_L \xor b_L]]
       if (pid == 1) {
         lsb[i] += 1;
       }
@@ -1658,7 +1658,7 @@ void MPCEnv::Trunc(Mat<ZZ_p>& a, int k, int m) {
     r_low.SetDims(a.NumRows(), a.NumCols());
     for (int i = 0; i < a.NumRows(); i++) {
       for (int j = 0; j < a.NumCols(); j++) {
-        r_low[i][j] = conv<ZZ_p>(trunc_ZZ(rep(r[i][j]), m));
+        r_low[i][j] = conv<ZZ_p>(trunc_ZZ(rep(r[i][j]), m)); // r_tail <- r mod 2^s ?
       }
     }
 
@@ -1698,7 +1698,7 @@ void MPCEnv::Trunc(Mat<ZZ_p>& a, int k, int m) {
   if (pid > 0) {
     for (int i = 0; i < a.NumRows(); i++) {
       for (int j = 0; j < a.NumCols(); j++) {
-        c_low[i][j] = conv<ZZ_p>(trunc_ZZ(rep(c[i][j]), m));
+        c_low[i][j] = conv<ZZ_p>(trunc_ZZ(rep(c[i][j]), m)); // (x+r)_tail <- x+r mod 2^s ?
       }
     }
   }
@@ -1706,7 +1706,7 @@ void MPCEnv::Trunc(Mat<ZZ_p>& a, int k, int m) {
   if (pid > 0) {
     a += r_low;
     if (pid == 1) {
-      a -= c_low;
+      a -= c_low; // -(x-r)_tail
     }
 
     ZZ_p twoinvm;
@@ -1714,8 +1714,8 @@ void MPCEnv::Trunc(Mat<ZZ_p>& a, int k, int m) {
     if (it == invpow_cache.end()) {
       ZZ_p two(2);
       ZZ_p twoinv;
-      inv(twoinv, two);
-      power(twoinvm, twoinv, m);
+      inv(twoinv, two);  // 2^(-1)
+      power(twoinvm, twoinv, m); // 2^((-1)s)
       invpow_cache[m] = twoinvm;
     } else {
       twoinvm = it->second;

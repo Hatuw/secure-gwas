@@ -755,7 +755,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       }
 
     }
-  }
+  } // end QC
 
   uint m1 = conv<uint>(Sum(gkeep1));
   cout << "n0: " << n0 << ", " << "m1: " << m1 << endl;
@@ -947,7 +947,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         ofs.close();
       }
     }
-  }
+  } // end QC
 
   mpc.ProfilerPopState(true); // ind_miss/het
 
