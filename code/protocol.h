@@ -2524,27 +2524,46 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 }
 
 bool test_protocol(MPCEnv& mpc, int pid) {
-  // return gwas_protocol(mpc, pid);
 
   int vec_len = 3;
-  Vec<ZZ_p> test_vec, test_vec2;
+  Vec<ZZ_p> in_vec;
+  in_vec.SetLength(vec_len);
+  Mat<ZZ_p> out_mat;
 
-  test_vec.SetLength(vec_len);
-  test_vec2.SetLength(vec_len);
+  for (int i = 0; i < vec_len; i++)
+    in_vec[i] = pid == 2 ? i : 0;
+
+  cout << "Powers()" << endl;
+  mpc.Powers(out_mat, in_vec, 5);
+  mpc.RevealSym(out_mat);
+  cout << out_mat << endl;
+
+
+  /* Householder
+  Vec<ZZ_p> in_vec, out_vec;
+
+  in_vec.SetLength(vec_len);
+  out_vec.SetLength(vec_len);
+
   for (int i = 0; i < vec_len; i++) {
-    test_vec[i] = 0;
-    test_vec2[i] = i;
+    IntToFP(in_vec[i], 0, Param::NBIT_K, Param::NBIT_F);
+    IntToFP(out_vec[i], 0, Param::NBIT_K, Param::NBIT_F);
   }
 
-  mpc.Householder(test_vec, test_vec2);
-    test_vec2[i] = 0;
-  }
-  test_vec2[2] = 2;
+  if (pid == 2)
+    // IntToFP(in_vec[2], 2, Param::NBIT_K, Param::NBIT_F);
+    in_vec[2] = 2;
 
-  if (pid == 1) {
-    mpc.Householder(test_vec, test_vec2);
-  }
-  // mpc.Powers(test_vec2, test_vec, 5)
+  mpc.RevealSym(in_vec);
+  mpc.PrintFP(in_vec);
+
+  mpc.Householder(out_vec, in_vec);
+  mpc.RevealSym(out_vec);
+
+  Vec<double> result;
+  FPToDouble(result, out_vec, Param::NBIT_K, Param::NBIT_F);
+  cout << "output_v: " << result << endl;
+  */
   return true;
 }
 
