@@ -2537,6 +2537,14 @@ bool test_protocol(MPCEnv& mpc, int pid) {
   }
 
   mpc.Householder(test_vec, test_vec2);
+    test_vec2[i] = 0;
+  }
+  test_vec2[2] = 2;
+
+  if (pid == 1) {
+    mpc.Householder(test_vec, test_vec2);
+  }
+  // mpc.Powers(test_vec2, test_vec, 5)
   return true;
 }
 
