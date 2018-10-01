@@ -2567,4 +2567,8 @@ bool test_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
+bool svm_protocol(MPCEnv& mpc, int pid) {
+  return true;
+}
+
 #endif
