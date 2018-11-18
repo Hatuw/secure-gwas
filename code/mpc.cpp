@@ -22,7 +22,7 @@ bool MPCEnv::Initialize(int pid, vector< pair<int, int> > &pairs) {
 
   this->pid = pid;
   this->clock_start = chrono::steady_clock::now();
-  // debug = false;
+  // debug = true;
   debug = false;
 
   if (!SetupChannels(pairs)) {

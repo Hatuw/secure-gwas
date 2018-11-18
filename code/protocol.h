@@ -2567,76 +2567,78 @@ bool test_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
-bool svm_protocol(MPCEnv& mpc, int pid) {
-  // parse params
-  float C = 200; // Param::NUM_C
-  float threshold = 0.0001;
-  int max_iter = 10000;
-  // default kernel function: linear
 
-  // share data
-  Mat<ZZ_p> X;
-  Mat<ZZ_p> labels;
+// bool svm_protocol(MPCEnv& mpc, int pid) {
+//   // parse params
+//   float C = 200; // Param::NUM_C
+//   float threshold = 0.0001;
+//   int max_iter = 10000;
+//   // default kernel function: linear
 
-  X.SetDims(100, 5);
-  int m = X.NumRows();
-  labels.SetDims(100, 1);
-  // init data, just for test
-  X = 1;
-  labels = 0;
-  mpc.Transpose(labels); // 1 * m
+//   // share data
+//   Mat<ZZ_p> X;
+//   Mat<ZZ_p> labels;
 
-  mpc.RandMat(X, m, 5);
-  mpc.RandVec(labels, m);
+//   X.SetDims(100, 5);
+//   int m = X.NumRows();
+//   labels.SetDims(100, 1);
+//   // init data, just for test
+//   X = 1;
+//   labels = 0;
+//   mpc.Transpose(labels); // 1 * m
 
-  // init alphas
-  Mat<ZZ_p> alphas;
-  alphas.SerDims(m, 1); // m * 1
-  alphas = 0;
+//   mpc.RandMat(X, m, 5);
+//   mpc.RandVec(labels, m);
 
-  // init kernels results
-  Mat<ZZ_p> K;
-  K.SetDims(X.NumRows(), X.NumRows());
-  K = 0;
-  for (int i = 0; i < m; i++) {
-      mpc.MultMat(K[i], X, mpc.Transpose(X[i]))
-  }
-  mpc.Transpose(K)
+//   // init alphas
+//   Mat<ZZ_p> alphas;
+//   alphas.SerDims(m, 1); // m * 1
+//   alphas = 0;
 
-  float b = 0.0;
+//   // init kernels results
+//   Mat<ZZ_p> K;
+//   K.SetDims(X.NumRows(), X.NumRows());
+//   K = 0;
+//   for (int i = 0; i < m; i++) {
+//       mpc.MultMat(K[i], X, mpc.Transpose(X[i]))
+//   }
+//   mpc.Transpose(K)
 
-  // tmp_mat
-  Mat<ZZ_p> tmp_mat;
-  tmp_mat.SetDims(m, m);
+//   float b = 0.0;
 
-  // define g_x
-  Vec<ZZ_p> gx_i;
-  gx_i.SetLength(m, 1);
+//   // tmp_mat
+//   Mat<ZZ_p> tmp_mat;
+//   tmp_mat.SetDims(m, m);
 
-  // SMO solve
-  int iter = 0;
-  bool entireset = false;
-  int alpha_pairs_changed = 0;
-  while (iter < max_iter and (alpha_pairs_changed > 0 or entireset)) {
-    alpha_pairs_changed = 0;
-    if (entireset) {
-      for (int i = 0; i < m; i++) {
-        // inner L
-        // calculate E value
-        mpc.MultMat(tmp_mat, alphas, labels);
-        mpc.MultMat(gx_i, K[i], tmp_mat);
-        gx_i += b;
-        E_i = gx_i - labels[i];
-        /*
-        fXk = float(multiply(oS.alphas, oS.labelMat).T*oS.K[:, k] + oS.b)
-        Ek = fXk - float(oS.labelMat[k])
-        return Ek
-        */
-      }
-    }
-  }
+//   // define g_x
+//   Vec<ZZ_p> gx_i;
+//   gx_i.SetLength(m, 1);
 
-  return true;
-}
+//   // SMO solve
+//   int iter = 0;
+//   bool entireset = false;
+//   int alpha_pairs_changed = 0;
+//   while (iter < max_iter and (alpha_pairs_changed > 0 or entireset)) {
+//     alpha_pairs_changed = 0;
+//     if (entireset) {
+//       for (int i = 0; i < m; i++) {
+//         // inner L
+//         // calculate E value
+//         mpc.MultMat(tmp_mat, alphas, labels);
+//         mpc.MultMat(gx_i, K[i], tmp_mat);
+//         gx_i += b;
+//         E_i = gx_i - labels[i];
+//         /*
+//         fXk = float(multiply(oS.alphas, oS.labelMat).T*oS.K[:, k] + oS.b)
+//         Ek = fXk - float(oS.labelMat[k])
+//         return Ek
+//         */
+//       }
+//     }
+//   }
+
+//   return true;
+// }
+
 
 #endif

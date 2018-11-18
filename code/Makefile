@@ -1,6 +1,7 @@
 # CPP = /data/cb/hhcho/local/bin/clang++
 CPP = /usr/bin/clang++
-INCPATHS = -I/data/cb/hhcho/local/include
+# INCPATHS = -I/data/cb/hhcho/local/include
+INCPATHS = -I/usr/local/include
 CFLAGS = -g -Wall -O1 $(INCPATHS) -march=native -std=c++11 -pthread
 LDLIBS = -lssl -lcrypto -lntl -lgmp -lm -ldl
 LDPATH = -L/usr/local/lib
@@ -9,8 +10,9 @@ BUILD = build
 PROGS = bin
 
 SRC = crypto.cpp connect.cpp aesstream.cpp mpc.cpp param.cpp
-# PROGNAMES = DataSharingClient GwasClient LogiRegClient GenerateKey TestClient SVMClient
-PROGNAMES = SVMClient
+PROGNAMES = DataSharingClient GwasClient LogiRegClient GenerateKey
+# TestClient SVMClient
+# PROGNAMES = SVMClient
 
 OBJPATHS = $(patsubst %.cpp,$(BUILD)/%.o, $(SRC))
 TESTPATHS = $(addprefix $(PROGS)/, $(PROGNAMES))
