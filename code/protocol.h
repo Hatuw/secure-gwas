@@ -14,6 +14,8 @@
 #include <sstream>
 #include <algorithm>
 
+// #include<typeinfo>
+
 #include <chrono>
 
 using namespace NTL;
@@ -22,44 +24,51 @@ using namespace std;
 using msec = chrono::milliseconds;
 using get_time = chrono::steady_clock;
 
-#define ABS(a) (((a)<0)?-(a):(a))
+#define ABS(a) (((a) < 0) ? -(a) : (a))
 
 auto clock_start = get_time::now();
 
-void tic() {
+void tic()
+{
   clock_start = get_time::now();
 }
 
-int toc() {
+int toc()
+{
   auto clock_end = get_time::now();
   int duration = chrono::duration_cast<msec>(clock_end - clock_start).count();
   cout << "Elapsed time is " << duration / 1000.0 << " secs" << endl;
   return duration;
 }
 
-bool DecrComp(const pair<int, double> &a, const pair<int, double> &b) {
+bool DecrComp(const pair<int, double> &a, const pair<int, double> &b)
+{
   return a.second > b.second;
 }
 
-string cache(int pid, string desc) {
+string cache(int pid, string desc)
+{
   ostringstream oss;
   oss << Param::CACHE_FILE_PREFIX << "_" << desc << ".bin";
   return oss.str();
 }
 
-string cache(int pid, int index) {
+string cache(int pid, int index)
+{
   ostringstream oss;
   oss << Param::CACHE_FILE_PREFIX << "_" << index << ".bin";
   return oss.str();
 }
 
-string outname(string desc) {
+string outname(string desc)
+{
   ostringstream oss;
   oss << Param::OUTPUT_FILE_PREFIX << "_" << desc << ".txt";
   return oss.str();
 }
 
-bool logireg_protocol(MPCEnv& mpc, int pid) {
+bool logireg_protocol(MPCEnv &mpc, int pid)
+{
   SetNumThreads(Param::NUM_THREADS);
   cout << AvailableThreads() << " threads created" << endl;
 
@@ -69,7 +78,8 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   int m0 = Param::NUM_SNPS;
   int k = Param::NUM_DIM_TO_REMOVE;
 
-  cout << "n0: " << n0 << ", " << "m0: " << m0 << endl;
+  cout << "n0: " << n0 << ", "
+       << "m0: " << m0 << endl;
 
   // Shared variables
   string s;
@@ -91,7 +101,8 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   Mat<ZZ_p> cov;
   Init(cov, n0, Param::NUM_COVS);
 
-  if (!exists(cache(pid, "input_geno")) || !exists(cache(pid, "input_pheno_cov"))) {
+  if (!exists(cache(pid, "input_geno")) || !exists(cache(pid, "input_pheno_cov")))
+  {
     cout << "Initial data sharing results not found:" << endl;
     cout << "\t" << cache(pid, "input_geno") << endl;
     cout << "\t" << cache(pid, "input_pheno_cov") << endl;
@@ -109,45 +120,55 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
 
   Vec<ZZ_p> gkeep1;
   Init(gkeep1, m0);
-  
+
   cout << "Using locus missing rate filter from a previous run" << endl;
-  
-  if (pid == 2) {
+
+  if (pid == 2)
+  {
     ifs.open(outname("gkeep1").c_str());
-    for (int i = 0; i < m0; i++) {
+    for (int i = 0; i < m0; i++)
+    {
       ifs >> gkeep1[i];
     }
     ifs.close();
 
     mpc.SendVec(gkeep1, 0);
     mpc.SendVec(gkeep1, 1);
-  } else {
+  }
+  else
+  {
     mpc.ReceiveVec(gkeep1, 2, m0);
   }
 
   uint m1 = conv<uint>(Sum(gkeep1));
-  cout << "n0: " << n0 << ", " << "m1: " << m1 << endl;
+  cout << "n0: " << n0 << ", "
+       << "m1: " << m1 << endl;
 
   Vec<ZZ_p> ikeep;
   Init(ikeep, n0);
 
   cout << "Using individual missing rate/het rate filters from a previous run" << endl;
-  
-  if (pid == 2) {
+
+  if (pid == 2)
+  {
     ifs.open(outname("ikeep").c_str());
-    for (int i = 0; i < n0; i++) {
+    for (int i = 0; i < n0; i++)
+    {
       ifs >> ikeep[i];
     }
     ifs.close();
 
     mpc.SendVec(ikeep, 0);
     mpc.SendVec(ikeep, 1);
-  } else {
+  }
+  else
+  {
     mpc.ReceiveVec(ikeep, 2, n0);
   }
 
   uint n1 = conv<uint>(Sum(ikeep));
-  cout << "n1: " << n1 << ", " << "m1: " << m1 << endl;
+  cout << "n1: " << n1 << ", "
+       << "m1: " << m1 << endl;
 
   cout << "Filtering phenotypes and covariates" << endl;
   mpc.Filter(pheno, ikeep, n1);
@@ -157,34 +178,41 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   Init(gkeep2, m1);
 
   cout << "Using MAF/HWE filters from a previous run" << endl;
-  
-  if (pid == 2) {
+
+  if (pid == 2)
+  {
     ifs.open(outname("gkeep2").c_str());
-    for (int i = 0; i < m1; i++) {
+    for (int i = 0; i < m1; i++)
+    {
       ifs >> gkeep2[i];
     }
     ifs.close();
 
     mpc.SendVec(gkeep2, 0);
     mpc.SendVec(gkeep2, 1);
-  } else {
+  }
+  else
+  {
     mpc.ReceiveVec(gkeep2, 2, m1);
   }
 
   uint m2 = conv<uint>(Sum(gkeep2));
-  cout << "n1: " << n1 << ", " << "m2: " << m2 << endl;
+  cout << "n1: " << n1 << ", "
+       << "m2: " << m2 << endl;
 
   cout << "Using CA statistics from a previous run" << endl;
-  
+
   Vec<ZZ_p> gkeep3;
   Init(gkeep3, m2);
 
-  if (pid == 2) {
-    vector<pair<int, double> > cavec(m2);
+  if (pid == 2)
+  {
+    vector<pair<int, double>> cavec(m2);
 
     ifs.open(outname("assoc").c_str());
     double val;
-    for (int i = 0; i < m2; i++) {
+    for (int i = 0; i < m2; i++)
+    {
       ifs >> val;
       cavec[i] = make_pair(i, val * val);
     }
@@ -194,17 +222,21 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
 
     cout << "Selected top " << ntop << " candidates" << endl;
     cout << "Top 5 CA stats: " << cavec[0].second;
-    for (int i = 1; i < 5; i++) {
+    for (int i = 1; i < 5; i++)
+    {
       cout << ", " << cavec[i].second;
     }
     cout << endl;
 
-    for (int i = 0; i < ntop; i++) {
+    for (int i = 0; i < ntop; i++)
+    {
       gkeep3[cavec[i].first] = 1;
     }
     mpc.SendVec(gkeep3, 0);
     mpc.SendVec(gkeep3, 1);
-  } else {
+  }
+  else
+  {
     mpc.ReceiveVec(gkeep3, 2, m2);
   }
 
@@ -219,8 +251,10 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   // Concatenate covariate matrix and jointly orthogonalize
   mpc.Transpose(cov);
   V.SetDims(k + Param::NUM_COVS, n1);
-  if (pid > 0) {
-    for (int i = 0; i < Param::NUM_COVS; i++) {
+  if (pid > 0)
+  {
+    for (int i = 0; i < Param::NUM_COVS; i++)
+    {
       V[k + i] = cov[i] * fp_one;
     }
   }
@@ -230,12 +264,14 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
 
   Vec<ZZ_p> V_mean;
   Init(V_mean, V.NumRows());
-  ZZ_p fp_denom = DoubleToFP(1 / ((double) V.NumCols()), Param::NBIT_K, Param::NBIT_F);
-  for (int i = 0; i < V_mean.length(); i++) {
+  ZZ_p fp_denom = DoubleToFP(1 / ((double)V.NumCols()), Param::NBIT_K, Param::NBIT_F);
+  for (int i = 0; i < V_mean.length(); i++)
+  {
     V_mean[i] = Sum(V[i]) * fp_denom;
   }
   mpc.Trunc(V_mean);
-  for (int i = 0; i < V_mean.length(); i++) {
+  for (int i = 0; i < V_mean.length(); i++)
+  {
     AddScalar(V[i], -V_mean[i]);
   }
 
@@ -247,49 +283,62 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
 
   Vec<ZZ_p> V_stdinv, dummy_vec;
   mpc.FPSqrt(dummy_vec, V_stdinv, V_var);
-  
-  for (int i = 0; i < V_mean.length(); i++) {
+
+  for (int i = 0; i < V_mean.length(); i++)
+  {
     mpc.MultMat(V[i], V[i], V_stdinv[i]);
   }
   mpc.Trunc(V);
 
   Vec<bool> gkeep;
   gkeep.SetLength(m0);
-  for (int j = 0; j < m0; j++) {
+  for (int j = 0; j < m0; j++)
+  {
     gkeep[j] = gkeep1[j] == 1;
   }
 
   ind = 0;
-  for (int j = 0; j < m0; j++) {
-    if (gkeep[j]) {
+  for (int j = 0; j < m0; j++)
+  {
+    if (gkeep[j])
+    {
       gkeep[j] = gkeep2[ind] == 1;
       ind++;
     }
   }
 
   ind = 0;
-  for (int j = 0; j < m0; j++) {
-    if (gkeep[j]) {
+  for (int j = 0; j < m0; j++)
+  {
+    if (gkeep[j])
+    {
       gkeep[j] = gkeep3[ind] == 1;
       ind++;
     }
   }
 
   Mat<ZZ_p> X, X_mask;
-  if (exists(cache(pid, "logi_input"))) {
+  if (exists(cache(pid, "logi_input")))
+  {
     cout << "logi_input cache found" << endl;
     ifs.open(cache(pid, "logi_input").c_str(), ios::in | ios::binary);
     mpc.BeaverReadFromFile(X, X_mask, ifs, ntop, n1);
     ifs.close();
-  } else {
+  }
+  else
+  {
     X.SetDims(n1, ntop);
     X_mask.SetDims(n1, ntop);
 
     ifs.open(cache(pid, "input_geno").c_str(), ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.ImportSeed(10, ifs);
-    } else {
-      for (int p = 1; p <= 2; p++) {
+    }
+    else
+    {
+      for (int p = 1; p <= 2; p++)
+      {
         mpc.ImportSeed(10 + p, ifs);
       }
     }
@@ -298,28 +347,36 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
     ind = -1;
     int batch_size = n1 / 10;
     tic();
-    for (int cur = 0; cur < n1; cur++) {
+    for (int cur = 0; cur < n1; cur++)
+    {
       ind++;
 
-      if ((cur + 1) % batch_size == 0 || cur == n1 - 1) {
-        cout << cur + 1 << "/" << n1 << ", "; toc();
+      if ((cur + 1) % batch_size == 0 || cur == n1 - 1)
+      {
+        cout << cur + 1 << "/" << n1 << ", ";
+        toc();
         tic();
       }
 
       Mat<ZZ_p> g0, g0_mask;
       Vec<ZZ_p> miss0, miss0_mask;
 
-      while (ikeep[ind] != 1) {
-        if (pid > 0) {
+      while (ikeep[ind] != 1)
+      {
+        if (pid > 0)
+        {
           mpc.SkipData(ifs, 3, m0); // g
-          mpc.SkipData(ifs, m0); // miss
+          mpc.SkipData(ifs, m0);    // miss
 
           mpc.SwitchSeed(10);
           mpc.RandMat(g0_mask, 3, m0);
           mpc.RandVec(miss0_mask, m0);
           mpc.RestoreSeed();
-        } else {
-          for (int p = 1; p <= 2; p++) {
+        }
+        else
+        {
+          for (int p = 1; p <= 2; p++)
+          {
             mpc.SwitchSeed(10 + p);
             mpc.RandMat(g0_mask, 3, m0);
             mpc.RandVec(miss0_mask, m0);
@@ -329,7 +386,8 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
         ind++;
       }
 
-      if (pid > 0) {
+      if (pid > 0)
+      {
         mpc.ReadFromFile(g0, ifs, 3, m0); // g
         mpc.ReadFromFile(miss0, ifs, m0); // miss
 
@@ -337,13 +395,16 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
         mpc.RandMat(g0_mask, 3, m0);
         mpc.RandVec(miss0_mask, m0);
         mpc.RestoreSeed();
-      } else {
+      }
+      else
+      {
         Init(g0, 3, m0);
         Init(g0_mask, 3, m0);
         Init(miss0, m0);
         Init(miss0_mask, m0);
 
-        for (int p = 1; p <= 2; p++) {
+        for (int p = 1; p <= 2; p++)
+        {
           mpc.SwitchSeed(10 + p);
           mpc.RandMat(tmp_mat, 3, m0);
           mpc.RandVec(tmp_vec, m0);
@@ -353,7 +414,7 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
           miss0_mask += tmp_vec;
         }
       }
-      
+
       Mat<ZZ_p> g, g_mask;
       Vec<ZZ_p> miss, miss_mask;
       g.SetDims(3, ntop);
@@ -361,9 +422,12 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
       g_mask.SetDims(3, ntop);
       miss_mask.SetLength(ntop);
       int ind2 = 0;
-      for (int j = 0; j < m0; j++) {
-        if (gkeep[j]) {
-          for (int k = 0; k < 3; k++) {
+      for (int j = 0; j < m0; j++)
+      {
+        if (gkeep[j])
+        {
+          for (int k = 0; k < 3; k++)
+          {
             g[k][ind2] = g0[k][j];
             g_mask[k][ind2] = g0_mask[k][j];
           }
@@ -394,15 +458,18 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
 
   Vec<long> indices;
   indices.SetLength(n1);
-  for (int i = 0; i < n1; i++) {
+  for (int i = 0; i < n1; i++)
+  {
     indices[i] = i + 1;
   }
 
   mpc.SwitchSeed(-1);
-  for (int i = 0; i < n1-1; i++) {
-    long chosen = RandomBnd(n1-i);
+  for (int i = 0; i < n1 - 1; i++)
+  {
+    long chosen = RandomBnd(n1 - i);
     Vec<ZZ_p> tmp;
-    if (chosen > 0) {
+    if (chosen > 0)
+    {
       tmp = xrt[i];
       xrt[i] = xrt[i + chosen];
       xrt[i + chosen] = tmp;
@@ -445,7 +512,8 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   mpc.ParallelLogisticRegression(b0, bv, bx, X, X_mask, V, V_mask, pheno, pheno_mask, 500);
 
   fs.open(cache(pid, "logireg_final_coeff").c_str(), ios::out | ios::binary);
-  if (pid > 0) {
+  if (pid > 0)
+  {
     mpc.WriteToFile(b0, fs);
     mpc.WriteToFile(bv, fs);
     mpc.WriteToFile(bx, fs);
@@ -453,11 +521,13 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   fs.close();
 
   mpc.RevealSym(bx);
-  if (pid == 2) {
+  if (pid == 2)
+  {
     Vec<double> bx_double;
     FPToDouble(bx_double, bx, Param::NBIT_K, Param::NBIT_F);
     ofs.open(outname("logi_coeff").c_str(), ios::out);
-    for (int i = 0; i < bx_double.length(); i++) {
+    for (int i = 0; i < bx_double.length(); i++)
+    {
       ofs << bx_double[i] << endl;
     }
     ofs.close();
@@ -467,7 +537,8 @@ bool logireg_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
-bool data_sharing_protocol(MPCEnv& mpc, int pid) {
+bool data_sharing_protocol(MPCEnv &mpc, int pid)
+{
   int n = Param::NUM_INDS;
 
   fstream fs;
@@ -479,10 +550,14 @@ bool data_sharing_protocol(MPCEnv& mpc, int pid) {
   Init(cov, n, Param::NUM_COVS);
 
   fs.open(cache(pid, "input_geno").c_str(), ios::out | ios::binary);
-  if (pid > 0) {
+  if (pid > 0)
+  {
     mpc.ExportSeed(fs, 0);
-  } else {
-    for (int p = 1; p <= 2; p++) {
+  }
+  else
+  {
+    for (int p = 1; p <= 2; p++)
+    {
       mpc.ExportSeed(fs, p);
     }
   }
@@ -496,15 +571,18 @@ bool data_sharing_protocol(MPCEnv& mpc, int pid) {
   cout << "Begin processing:" << endl;
 
   tic();
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++)
+  {
     Mat<ZZ_p> g;
     Vec<ZZ_p> miss, p;
 
     git.GetNextGMP(g, miss, p);
 
-    if (pid > 0) {
+    if (pid > 0)
+    {
       pheno[i] = p[0];
-      for (int j = 0; j < Param::NUM_COVS; j++) {
+      for (int j = 0; j < Param::NUM_COVS; j++)
+      {
         cov[i][j] = p[1 + j];
       }
     }
@@ -515,15 +593,19 @@ bool data_sharing_protocol(MPCEnv& mpc, int pid) {
     mpc.BeaverPartition(g_mask, g);
     mpc.BeaverPartition(miss_mask, miss);
 
-    if (pid > 0) {
+    if (pid > 0)
+    {
       // Note: g_mask and miss_mask can be recovered from PRG and
       // need not be written
       mpc.WriteToFile(g, fs);
       mpc.WriteToFile(miss, fs);
     }
 
-    if ((i + 1) % bsize == 0 || i == n - 1) {
-      cout << "\t" << i+1 << " / " << n << ", "; toc(); tic();
+    if ((i + 1) % bsize == 0 || i == n - 1)
+    {
+      cout << "\t" << i + 1 << " / " << n << ", ";
+      toc();
+      tic();
     }
   }
 
@@ -533,7 +615,8 @@ bool data_sharing_protocol(MPCEnv& mpc, int pid) {
 
   cout << "Finished writing Beaver partitioned genotype data" << endl;
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "pheno" << endl;
     mpc.Print(pheno, 5);
     cout << "cov" << endl;
@@ -550,7 +633,8 @@ bool data_sharing_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
-bool gwas_protocol(MPCEnv& mpc, int pid) {
+bool gwas_protocol(MPCEnv &mpc, int pid)
+{
   SetNumThreads(Param::NUM_THREADS);
   cout << AvailableThreads() << " threads created" << endl;
 
@@ -559,7 +643,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   int k = Param::NUM_DIM_TO_REMOVE;
   int kp = k + Param::NUM_OVERSAMPLE;
 
-  cout << "n0: " << n0 << ", " << "m0: " << m0 << endl;
+  cout << "n0: " << n0 << ", "
+       << "m0: " << m0 << endl;
 
   // Shared variables
   string s;
@@ -578,12 +663,14 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Init(snp_pos, m0);
 
   ifs.open(Param::SNP_POS_FILE.c_str());
-  if (!ifs.is_open()) {
+  if (!ifs.is_open())
+  {
     cout << "Could not open SNP_POS_FILE: " << Param::SNP_POS_FILE << endl;
     return false;
   }
 
-  for (int i = 0; i < m0; i++) {
+  for (int i = 0; i < m0; i++)
+  {
     long chrom, pos;
     ifs >> chrom >> pos;
     snp_pos[i] = ZZ(chrom) * 1e9 + ZZ(pos);
@@ -602,7 +689,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Mat<ZZ_p> cov;
   Init(cov, n0, Param::NUM_COVS);
 
-  if (!exists(cache(pid, "input_geno")) || !exists(cache(pid, "input_pheno_cov"))) {
+  if (!exists(cache(pid, "input_geno")) || !exists(cache(pid, "input_pheno_cov")))
+  {
     cout << "Initial data sharing results not found:" << endl;
     cout << "\t" << cache(pid, "input_geno") << endl;
     cout << "\t" << cache(pid, "input_pheno_cov") << endl;
@@ -618,7 +706,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   cout << "Phenotypes and covariates loaded" << endl;
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "pheno" << endl;
     mpc.Print(pheno, 5);
     cout << "cov" << endl;
@@ -632,55 +721,72 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> gkeep1;
   Init(gkeep1, m0);
 
-  if (Param::SKIP_QC) {
-    for (int i = 0; i < m0; i++) {
+  if (Param::SKIP_QC)
+  {
+    for (int i = 0; i < m0; i++)
+    {
       gkeep1[i] = 1;
     }
     cout << "Locus missing rate filter skipped" << endl;
-  } else {
+  }
+  else
+  {
 
     bool history;
-    if (pid == 2) {
+    if (pid == 2)
+    {
       history = exists(outname("gkeep1"));
       mpc.SendBool(history, 0);
       mpc.SendBool(history, 1);
-    } else {
+    }
+    else
+    {
       // ask P2 if gkeep1 has been computed before
       history = mpc.ReceiveBool(2);
     }
 
-    if (history) {
+    if (history)
+    {
       cout << "Using locus missing rate filter from a previous run" << endl;
-   
-      if (pid == 2) {
+
+      if (pid == 2)
+      {
         ifs.open(outname("gkeep1").c_str());
-        for (int i = 0; i < m0; i++) {
+        for (int i = 0; i < m0; i++)
+        {
           ifs >> gkeep1[i];
         }
         ifs.close();
 
         mpc.SendVec(gkeep1, 0);
         mpc.SendVec(gkeep1, 1);
-      } else {
+      }
+      else
+      {
         mpc.ReceiveVec(gkeep1, 2, m0);
       }
-    } else {
+    }
+    else
+    {
       Vec<ZZ_p> gmiss;
       Init(gmiss, m0);
-      
-      if (exists(cache(pid, "gmiss"))) {
+
+      if (exists(cache(pid, "gmiss")))
+      {
 
         cout << "Locus missing rate cache found" << endl;
 
         ifs.open(cache(pid, "gmiss").c_str(), ios::binary);
         mpc.ReadFromFile(gmiss, ifs, m0);
         ifs.close();
-
-      } else {
+      }
+      else
+      {
 
         cout << "Taking a pass to calculate locus missing rates:" << endl;
 
-        if (pid > 0) {
+        if (pid > 0)
+        {
           ifs.open(cache(pid, "input_geno").c_str(), ios::binary);
 
           mpc.ImportSeed(10, ifs);
@@ -688,7 +794,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
           long bsize = n0 / 10;
 
           tic();
-          for (int i = 0; i < n0; i++) {
+          for (int i = 0; i < n0; i++)
+          {
             Vec<ZZ_p> miss, miss_mask;
 
             // Load stored Beaver partition
@@ -697,23 +804,30 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
             mpc.RandVec(miss_mask, m0);
             mpc.RestoreSeed();
 
-            if (pid == 2) {
+            if (pid == 2)
+            {
               mpc.SkipData(ifs, 3, m0);
               mpc.ReadFromFile(miss, ifs, m0);
             }
 
             // Recover secret shares from Beaver partition
-            if (pid == 1) {
+            if (pid == 1)
+            {
               miss = miss_mask;
-            } else {
+            }
+            else
+            {
               miss += miss_mask;
             }
 
             // Add to running sum
             gmiss += miss;
 
-            if ((i + 1) % bsize == 0 || i == n0 - 1) {
-              cout << "\t" << i+1 << " / " << n0 << ", "; toc(); tic();
+            if ((i + 1) % bsize == 0 || i == n0 - 1)
+            {
+              cout << "\t" << i + 1 << " / " << n0 << ", ";
+              toc();
+              tic();
             }
           }
 
@@ -725,40 +839,47 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         fs.close();
 
         cout << "Wrote results to cache" << endl;
-
       }
 
-      if (Param::DEBUG) {
+      if (Param::DEBUG)
+      {
         cout << "gmiss" << endl;
         mpc.Print(gmiss, 5);
       }
-      cout << "Locus missing rate filter ... "; tic();
+      cout << "Locus missing rate filter ... ";
+      tic();
 
-      ZZ_p gmiss_ub = ZZ_p((long) (n0 * Param::GMISS_UB));
+      ZZ_p gmiss_ub = ZZ_p((long)(n0 * Param::GMISS_UB));
       mpc.LessThanPublic(gkeep1, gmiss, gmiss_ub);
-      cout << "done. "; toc();
-      
+      cout << "done. ";
+      toc();
+
       mpc.RevealSym(gkeep1);
 
-      if (pid == 2) {
+      if (pid == 2)
+      {
         mpc.SendVec(gkeep1, 0);
-      } else if (pid == 0) {
+      }
+      else if (pid == 0)
+      {
         mpc.ReceiveVec(gkeep1, 2, m0);
       }
 
-      if (pid == 2) {
+      if (pid == 2)
+      {
         ofs.open(outname("gkeep1").c_str());
-        for (int i = 0; i < gkeep1.length(); i++) {
+        for (int i = 0; i < gkeep1.length(); i++)
+        {
           ofs << gkeep1[i] << endl;
         }
         ofs.close();
       }
-
     }
   } // end QC
 
   uint m1 = conv<uint>(Sum(gkeep1));
-  cout << "n0: " << n0 << ", " << "m1: " << m1 << endl;
+  cout << "n0: " << n0 << ", "
+       << "m1: " << m1 << endl;
 
   cout << "Filtering SNP position vector" << endl;
   FilterVec(snp_pos, gkeep1);
@@ -770,59 +891,76 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> ikeep;
   Init(ikeep, n0);
 
-  if (Param::SKIP_QC) {
-    for (int i = 0; i < n0; i++) {
+  if (Param::SKIP_QC)
+  {
+    for (int i = 0; i < n0; i++)
+    {
       ikeep[i] = 1;
     }
     cout << "Individual missing rate/het rate filters skipped" << endl;
-  } else {
+  }
+  else
+  {
 
     bool history;
-    if (pid == 2) {
+    if (pid == 2)
+    {
       history = exists(outname("ikeep"));
       mpc.SendBool(history, 0);
       mpc.SendBool(history, 1);
-    } else {
+    }
+    else
+    {
       // ask P2 if ikeep has been computed before
       history = mpc.ReceiveBool(2);
     }
 
-    if (history) {
+    if (history)
+    {
       cout << "Using individual missing rate/het rate filters from a previous run" << endl;
-   
-      if (pid == 2) {
+
+      if (pid == 2)
+      {
         ifs.open(outname("ikeep").c_str());
-        for (int i = 0; i < n0; i++) {
+        for (int i = 0; i < n0; i++)
+        {
           ifs >> ikeep[i];
         }
         ifs.close();
 
         mpc.SendVec(ikeep, 0);
         mpc.SendVec(ikeep, 1);
-      } else {
+      }
+      else
+      {
         mpc.ReceiveVec(ikeep, 2, n0);
       }
-    } else {
+    }
+    else
+    {
 
       Vec<ZZ_p> imiss, ihet;
       Init(imiss, n0);
       Init(ihet, n0);
 
-      if (exists(cache(pid, "imiss_ihet"))) {
+      if (exists(cache(pid, "imiss_ihet")))
+      {
         cout << "Individual missing rate and het rate cache found" << endl;
 
         ifs.open(cache(pid, "imiss_ihet").c_str(), ios::binary);
         mpc.ReadFromFile(imiss, ifs, n0);
         mpc.ReadFromFile(ihet, ifs, n0);
         ifs.close();
-
-      } else {
+      }
+      else
+      {
 
         cout << "Taking a pass to calculate individual missing rates and het rates:" << endl;
 
         mpc.ProfilerPushState("data_scan");
 
-        if (pid > 0) {
+        if (pid > 0)
+        {
           ifs.open(cache(pid, "input_geno").c_str(), ios::binary);
 
           mpc.ImportSeed(10, ifs);
@@ -830,7 +968,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
           long bsize = n0 / 10;
 
           tic();
-          for (int i = 0; i < n0; i++) {
+          for (int i = 0; i < n0; i++)
+          {
             Mat<ZZ_p> g, g_mask;
             Vec<ZZ_p> miss, miss_mask;
 
@@ -840,30 +979,39 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
             mpc.RandVec(miss_mask, m0);
             mpc.RestoreSeed();
 
-            if (pid == 2) {
+            if (pid == 2)
+            {
               mpc.ReadFromFile(g, ifs, 3, m0);
               mpc.ReadFromFile(miss, ifs, m0);
             }
 
             // Recover secret shares from Beaver partition
-            if (pid == 1) {
+            if (pid == 1)
+            {
               g = g_mask;
               miss = miss_mask;
-            } else {
+            }
+            else
+            {
               g += g_mask;
               miss += miss_mask;
             }
 
             // Add to running sum
-            for (int j = 0; j < m0; j++) {
-              if (gkeep1[j] == 1) {
+            for (int j = 0; j < m0; j++)
+            {
+              if (gkeep1[j] == 1)
+              {
                 imiss[i] += miss[j];
                 ihet[i] += g[1][j];
               }
             }
 
-            if ((i + 1) % bsize == 0 || i == n0 - 1) {
-              cout << "\t" << i+1 << " / " << n0 << ", "; toc(); tic();
+            if ((i + 1) % bsize == 0 || i == n0 - 1)
+            {
+              cout << "\t" << i + 1 << " / " << n0 << ", ";
+              toc();
+              tic();
             }
           }
           ifs.close();
@@ -882,26 +1030,32 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.ProfilerPushState("miss_filt");
 
       // Individual missingness filter
-      cout << "Individual missing rate filter ... "; tic();
-      ZZ_p imiss_ub = ZZ_p((long) (m1 * Param::IMISS_UB));
+      cout << "Individual missing rate filter ... ";
+      tic();
+      ZZ_p imiss_ub = ZZ_p((long)(m1 * Param::IMISS_UB));
       mpc.LessThanPublic(ikeep, imiss, imiss_ub);
-      cout << "done. "; toc();
+      cout << "done. ";
+      toc();
 
       mpc.ProfilerPopState(true); // miss_filt
       mpc.ProfilerPushState("het_filt");
 
       // Individual heterozygosity filter
-      cout << "Individual heterozygosity rate filter ... "; tic();
+      cout << "Individual heterozygosity rate filter ... ";
+      tic();
       ZZ_p ihet_ub_frac = DoubleToFP(Param::HET_UB, Param::NBIT_K, Param::NBIT_F);
       ZZ_p ihet_lb_frac = DoubleToFP(Param::HET_LB, Param::NBIT_K, Param::NBIT_F);
 
       // Number of observed SNPs per individual
       Vec<ZZ_p> m1_obs;
       Init(m1_obs, n0);
-      if (pid > 0) {
-        for (int i = 0; i < n0; i++) {
+      if (pid > 0)
+      {
+        for (int i = 0; i < n0; i++)
+        {
           m1_obs[i] = -imiss[i];
-          if (pid == 1) {
+          if (pid == 1)
+          {
             m1_obs[i] += m1;
           }
         }
@@ -911,8 +1065,10 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       Init(ihet_ub, n0);
       Init(ihet_lb, n0);
 
-      if (pid > 0) {
-        for (int i = 0; i < n0; i++) {
+      if (pid > 0)
+      {
+        for (int i = 0; i < n0; i++)
+        {
           ihet_ub[i] = m1_obs[i] * ihet_ub_frac;
           ihet_lb[i] = m1_obs[i] * ihet_lb_frac;
           ihet[i] *= fp_one;
@@ -926,22 +1082,28 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
       mpc.MultElem(ikeep, ikeep, het_filt);
       het_filt.kill();
-      cout << "done. "; toc();
+      cout << "done. ";
+      toc();
 
       mpc.ProfilerPopState(true); // het_filt
 
       // Reveal samples to be filtered
       mpc.RevealSym(ikeep);
 
-      if (pid == 2) {
+      if (pid == 2)
+      {
         mpc.SendVec(ikeep, 0);
-      } else if (pid == 0) {
+      }
+      else if (pid == 0)
+      {
         mpc.ReceiveVec(ikeep, 2, n0);
       }
 
-      if (pid == 2) {
+      if (pid == 2)
+      {
         ofs.open(outname("ikeep"));
-        for (int i = 0; i < ikeep.length(); i++) {
+        for (int i = 0; i < ikeep.length(); i++)
+        {
           ofs << ikeep[i] << endl;
         }
         ofs.close();
@@ -953,7 +1115,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   uint n1 = conv<uint>(Sum(ikeep));
 
-  cout << "n1: " << n1 << ", " << "m1: " << m1 << endl;
+  cout << "n1: " << n1 << ", "
+       << "m1: " << m1 << endl;
 
   cout << "Filtering phenotypes and covariates" << endl;
   mpc.Filter(pheno, ikeep, n1);
@@ -978,7 +1141,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   mpc.ProfilerPushState("data_scan");
 
-  if (exists(cache(pid, "geno_stats"))) {
+  if (exists(cache(pid, "geno_stats")))
+  {
     cout << "Genotype statistics cache found" << endl;
 
     ifs.open(cache(pid, "geno_stats").c_str(), ios::binary);
@@ -989,14 +1153,20 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     mpc.ReadFromFile(g_count_ctrl, ifs, 3, m1);
     mpc.ReadFromFile(n1_ctrl, ifs);
     ifs.close();
-  } else {
+  }
+  else
+  {
     cout << "Taking a pass to calculate genotype statistics:" << endl;
 
     ifs.open(cache(pid, "input_geno").c_str(), ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.ImportSeed(10, ifs);
-    } else {
-      for (int p = 1; p <= 2; p++) {
+    }
+    else
+    {
+      for (int p = 1; p <= 2; p++)
+      {
         mpc.ImportSeed(10 + p, ifs);
       }
     }
@@ -1006,7 +1176,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     long bsize = Param::PITER_BATCH_SIZE;
 
     // Containers for batching the computation
-    Vec< Mat<ZZ_p> > g, g_mask;
+    Vec<Mat<ZZ_p>> g, g_mask;
     Mat<ZZ_p> dosage, dosage_mask;
     Mat<ZZ_p> miss, miss_mask;
     Vec<ZZ_p> ctrl_vec, ctrl_mask_vec;
@@ -1016,7 +1186,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     dosage_mask.SetDims(bsize, m1);
     miss.SetDims(bsize, m1);
     miss_mask.SetDims(bsize, m1);
-    for (int k = 0; k < 3; k++) {
+    for (int k = 0; k < 3; k++)
+    {
       g[k].SetDims(bsize, m1);
       g_mask[k].SetDims(bsize, m1);
     }
@@ -1025,7 +1196,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     ind = -1;
     tic();
-    for (int i = 0; i < n1; i++) {
+    for (int i = 0; i < n1; i++)
+    {
       ind++;
 
       mpc.ProfilerPushState("file_io/rng");
@@ -1033,17 +1205,22 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       Mat<ZZ_p> g0, g0_mask;
       Vec<ZZ_p> miss0, miss0_mask;
 
-      while (ikeep[ind] != 1) {
-        if (pid > 0) {
+      while (ikeep[ind] != 1)
+      {
+        if (pid > 0)
+        {
           mpc.SkipData(ifs, 3, m0); // g
-          mpc.SkipData(ifs, m0); // miss
+          mpc.SkipData(ifs, m0);    // miss
 
           mpc.SwitchSeed(10);
           mpc.RandMat(g0_mask, 3, m0);
           mpc.RandVec(miss0_mask, m0);
           mpc.RestoreSeed();
-        } else {
-          for (int p = 1; p <= 2; p++) {
+        }
+        else
+        {
+          for (int p = 1; p <= 2; p++)
+          {
             mpc.SwitchSeed(10 + p);
             mpc.RandMat(g0_mask, 3, m0);
             mpc.RandVec(miss0_mask, m0);
@@ -1053,7 +1230,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         ind++;
       }
 
-      if (pid > 0) {
+      if (pid > 0)
+      {
         mpc.ReadFromFile(g0, ifs, 3, m0); // g
         mpc.ReadFromFile(miss0, ifs, m0); // miss
 
@@ -1061,13 +1239,16 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         mpc.RandMat(g0_mask, 3, m0);
         mpc.RandVec(miss0_mask, m0);
         mpc.RestoreSeed();
-      } else {
+      }
+      else
+      {
         Init(g0, 3, m0);
         Init(g0_mask, 3, m0);
         Init(miss0, m0);
         Init(miss0_mask, m0);
 
-        for (int p = 1; p <= 2; p++) {
+        for (int p = 1; p <= 2; p++)
+        {
           mpc.SwitchSeed(10 + p);
           mpc.RandMat(tmp_mat, 3, m0);
           mpc.RandVec(tmp_vec, m0);
@@ -1077,14 +1258,17 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
           miss0_mask += tmp_vec;
         }
       }
-      
+
       mpc.ProfilerPopState(false); // file_io/rng
 
       // Filter out loci that failed missing rate filter
       int ind2 = 0;
-      for (int j = 0; j < m0; j++) {
-        if (gkeep1[j] == 1) {
-          for (int k = 0; k < 3; k++) {
+      for (int j = 0; j < m0; j++)
+      {
+        if (gkeep1[j] == 1)
+        {
+          for (int k = 0; k < 3; k++)
+          {
             g[k][i % bsize][ind2] = g0[k][j];
             g_mask[k][i % bsize][ind2] = g0_mask[k][j];
           }
@@ -1101,22 +1285,27 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       ctrl_mask_vec[i % bsize] = ctrl_mask[i];
 
       // Update running sums
-      if (pid > 0) {
+      if (pid > 0)
+      {
         n1_ctrl += ctrl_mask[i];
         gmiss += miss_mask[i % bsize];
         dosage_sum += dosage_mask[i % bsize];
 
-        if (pid == 1) {
+        if (pid == 1)
+        {
           n1_ctrl += ctrl[i];
           gmiss += miss[i % bsize];
           dosage_sum += dosage[i % bsize];
         }
       }
 
-      if (i % bsize == bsize - 1 || i == n1 - 1) {
-        if (i % bsize < bsize - 1) {
+      if (i % bsize == bsize - 1 || i == n1 - 1)
+      {
+        if (i % bsize < bsize - 1)
+        {
           int new_bsize = (i % bsize) + 1;
-          for (int k = 0; k < 3; k++) {
+          for (int k = 0; k < 3; k++)
+          {
             g[k].SetDims(new_bsize, m1);
             g_mask[k].SetDims(new_bsize, m1);
           }
@@ -1130,13 +1319,17 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
         mpc.BeaverMult(gmiss_ctrl, ctrl_vec, ctrl_mask_vec, miss, miss_mask);
         mpc.BeaverMult(dosage_sum_ctrl, ctrl_vec, ctrl_mask_vec, dosage, dosage_mask);
-        for (int k = 0; k < 3; k++) {
+        for (int k = 0; k < 3; k++)
+        {
           mpc.BeaverMult(g_count_ctrl[k], ctrl_vec, ctrl_mask_vec, g[k], g_mask[k]);
         }
       }
 
-      if ((i + 1) % report_bsize == 0 || i == n1 - 1) {
-        cout << "\t" << i+1 << " / " << n1 << ", "; toc(); tic();
+      if ((i + 1) % report_bsize == 0 || i == n1 - 1)
+      {
+        cout << "\t" << i + 1 << " / " << n1 << ", ";
+        toc();
+        tic();
       }
     }
 
@@ -1163,7 +1356,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   mpc.ProfilerPushState("maf/hwe");
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "gmiss" << endl;
     mpc.Print(gmiss, 5);
     cout << "gmiss_ctrl" << endl;
@@ -1173,7 +1367,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     cout << "dosage_sum_ctrl" << endl;
     mpc.Print(dosage_sum_ctrl, 5);
     cout << "g_count_ctrl" << endl;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
       mpc.Print(g_count_ctrl[i], 5);
     }
   }
@@ -1186,30 +1381,37 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   ZZ_p maf_ub = DoubleToFP(Param::MAF_UB, Param::NBIT_K, Param::NBIT_F);
 
   Vec<ZZ_p> dosage_tot, dosage_tot_ctrl;
-  if (pid > 0) {
+  if (pid > 0)
+  {
     dosage_tot = -gmiss;
     dosage_tot_ctrl = -gmiss_ctrl;
     mpc.AddPublic(dosage_tot, ZZ_p(n1));
     mpc.Add(dosage_tot_ctrl, n1_ctrl);
     dosage_tot *= 2;
     dosage_tot_ctrl *= 2;
-  } else {
+  }
+  else
+  {
     dosage_tot.SetLength(m1);
     dosage_tot_ctrl.SetLength(m1);
   }
 
-  cout << "Calculating MAFs ... " << endl; tic();
+  cout << "Calculating MAFs ... " << endl;
+  tic();
   Vec<ZZ_p> maf, maf_ctrl;
-  if (exists(cache(pid, "maf"))) {
+  if (exists(cache(pid, "maf")))
+  {
     cout << "maf cache found" << endl;
     ifs.open(cache(pid, "maf").c_str(), ios::binary);
     mpc.ReadFromFile(maf, ifs, dosage_tot.length());
     mpc.ReadFromFile(maf_ctrl, ifs, dosage_tot_ctrl.length());
     ifs.close();
-  } else {
+  }
+  else
+  {
     mpc.ProfilerPushState("div");
-    mpc.FPDiv(maf, dosage_sum, dosage_tot); 
-    mpc.FPDiv(maf_ctrl, dosage_sum_ctrl, dosage_tot_ctrl); 
+    mpc.FPDiv(maf, dosage_sum, dosage_tot);
+    mpc.FPDiv(maf_ctrl, dosage_sum_ctrl, dosage_tot_ctrl);
     mpc.ProfilerPopState(false); // div
 
     fs.open(cache(pid, "maf").c_str(), ios::out | ios::binary);
@@ -1217,15 +1419,19 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     mpc.WriteToFile(maf_ctrl, fs);
     fs.close();
   }
-  cout << "done. "; toc();
+  cout << "done. ";
+  toc();
 
   Vec<ZZ_p> Maf, Maf_ctrl; // MAJOR allele freq
-  if (pid > 0) {
+  if (pid > 0)
+  {
     Maf = -maf;
     Maf_ctrl = -maf_ctrl;
     mpc.AddPublic(Maf, fp_one);
     mpc.AddPublic(Maf_ctrl, fp_one);
-  } else {
+  }
+  else
+  {
     Maf.SetLength(m1);
     Maf_ctrl.SetLength(m1);
   }
@@ -1237,7 +1443,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   mpc.ProfilerPopState(true); // maf
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "maf" << endl;
     mpc.PrintFP(maf, 5);
     cout << "maf_ctrl" << endl;
@@ -1247,39 +1454,53 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> gkeep2;
   Init(gkeep2, m1);
 
-  if (Param::SKIP_QC) {
-    for (int i = 0; i < m1; i++) {
+  if (Param::SKIP_QC)
+  {
+    for (int i = 0; i < m1; i++)
+    {
       gkeep2[i] = 1;
     }
     cout << "SNP MAF/HWE filters skipped" << endl;
-  } else {
+  }
+  else
+  {
     bool history;
-    if (pid == 2) {
+    if (pid == 2)
+    {
       history = exists(outname("gkeep2"));
       mpc.SendBool(history, 0);
       mpc.SendBool(history, 1);
-    } else {
+    }
+    else
+    {
       // ask P2 if gkeep2 has been computed before
       history = mpc.ReceiveBool(2);
     }
 
-    if (history) {
+    if (history)
+    {
       cout << "Using MAF/HWE filters from a previous run" << endl;
-   
-      if (pid == 2) {
+
+      if (pid == 2)
+      {
         ifs.open(outname("gkeep2").c_str());
-        for (int i = 0; i < m1; i++) {
+        for (int i = 0; i < m1; i++)
+        {
           ifs >> gkeep2[i];
         }
         ifs.close();
 
         mpc.SendVec(gkeep2, 0);
         mpc.SendVec(gkeep2, 1);
-      } else {
+      }
+      else
+      {
         mpc.ReceiveVec(gkeep2, 2, m1);
       }
-    } else {
-      
+    }
+    else
+    {
+
       mpc.ProfilerPushState("maf_filt");
 
       mpc.LessThanPublic(gkeep2, maf, maf_ub);
@@ -1290,43 +1511,55 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
       mpc.ProfilerPushState("hwe_filt");
 
-      cout << "Locus Hardy-Weinberg equilibrium (HWE) filter ... " << endl; tic();
+      cout << "Locus Hardy-Weinberg equilibrium (HWE) filter ... " << endl;
+      tic();
       ZZ_p hwe_ub = DoubleToFP(Param::HWE_UB, Param::NBIT_K, Param::NBIT_F); // p < 1e-7
-      
+
       // Calculate expected genotype distribution in control group
       Mat<ZZ_p> g_exp_ctrl;
       Init(g_exp_ctrl, 3, m1);
 
       mpc.MultElem(g_exp_ctrl[0], Maf_ctrl, Maf_ctrl); // AA
       mpc.MultElem(g_exp_ctrl[1], Maf_ctrl, maf_ctrl); // Aa
-      if (pid > 0) {
+      if (pid > 0)
+      {
         g_exp_ctrl[1] *= 2;
       }
       mpc.MultElem(g_exp_ctrl[2], maf_ctrl, maf_ctrl); // aa
 
-      for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < 3; i++)
+      {
         mpc.MultElem(g_exp_ctrl[i], g_exp_ctrl[i], dosage_tot_ctrl);
       }
       g_exp_ctrl *= twoinv; // dosage_tot_ctrl is twice the # individuals we actually want
 
       mpc.Trunc(g_exp_ctrl);
 
-      cout << "\tCalculated expected genotype counts, "; toc(); tic();
+      cout << "\tCalculated expected genotype counts, ";
+      toc();
+      tic();
 
-      Vec<ZZ_p> hwe_chisq; 
+      Vec<ZZ_p> hwe_chisq;
       Init(hwe_chisq, m1);
 
-      if (exists(cache(pid, "hwe"))) {
+      if (exists(cache(pid, "hwe")))
+      {
         cout << "HWE cache found" << endl;
         ifs.open(cache(pid, "hwe").c_str(), ios::binary);
         mpc.ReadFromFile(hwe_chisq, ifs, m1);
         ifs.close();
-      } else {
-        for (int i = 0; i < 3; i++) {
+      }
+      else
+      {
+        for (int i = 0; i < 3; i++)
+        {
           Vec<ZZ_p> diff;
-          if (pid > 0) {
+          if (pid > 0)
+          {
             diff = fp_one * g_count_ctrl[i] - g_exp_ctrl[i];
-          } else {
+          }
+          else
+          {
             diff.SetLength(m1);
           }
 
@@ -1338,7 +1571,9 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
           mpc.ProfilerPopState(false); // div
           hwe_chisq += tmp_vec;
 
-          cout << "\tChi-square test (" << i+1 << "/3), "; toc(); tic();
+          cout << "\tChi-square test (" << i + 1 << "/3), ";
+          toc();
+          tic();
         }
 
         fs.open(cache(pid, "hwe").c_str(), ios::out | ios::binary);
@@ -1346,28 +1581,34 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         fs.close();
       }
 
-      if (Param::DEBUG) {
+      if (Param::DEBUG)
+      {
         cout << "hwe" << endl;
         mpc.PrintFP(hwe_chisq, 5);
       }
-      
+
       Vec<ZZ_p> hwe_filt;
       mpc.LessThanPublic(hwe_filt, hwe_chisq, hwe_ub);
       mpc.MultElem(gkeep2, gkeep2, hwe_filt);
       hwe_filt.kill();
 
-      // Reveal which SNPs to discard 
+      // Reveal which SNPs to discard
       mpc.RevealSym(gkeep2);
-        
-      if (pid == 2) {
+
+      if (pid == 2)
+      {
         mpc.SendVec(gkeep2, 0);
-      } else if (pid == 0) {
+      }
+      else if (pid == 0)
+      {
         mpc.ReceiveVec(gkeep2, 2, m1);
       }
 
-      if (pid == 2) {
+      if (pid == 2)
+      {
         ofs.open(outname("gkeep2").c_str());
-        for (int i = 0; i < gkeep2.length(); i++) {
+        for (int i = 0; i < gkeep2.length(); i++)
+        {
           ofs << gkeep2[i] << endl;
         }
         ofs.close();
@@ -1378,7 +1619,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   }
 
   uint m2 = conv<uint>(Sum(gkeep2));
-  cout << "n1: " << n1 << ", " << "m2: " << m2 << endl;
+  cout << "n1: " << n1 << ", "
+       << "m2: " << m2 << endl;
 
   cout << "Filtering genotype statistics" << endl;
   mpc.Filter(g_var_bern, gkeep2, m2);
@@ -1392,18 +1634,20 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   g_count_ctrl.kill();
 
   mpc.ProfilerPopState(false); // maf/hwe
-  mpc.ProfilerPopState(true); // qc
+  mpc.ProfilerPopState(true);  // qc
   mpc.ProfilerPushState("std_param");
 
   Vec<ZZ_p> g_std_bern_inv;
-  if (exists(cache(pid, "stdinv_bern"))) {
+  if (exists(cache(pid, "stdinv_bern")))
+  {
     cout << "Genotype standard deviation cache found" << endl;
 
     ifs.open(cache(pid, "stdinv_bern").c_str(), ios::binary);
     mpc.ReadFromFile(g_std_bern_inv, ifs, g_var_bern.length());
     ifs.close();
-
-  } else {
+  }
+  else
+  {
     cout << "Calculating genotype standard deviations (inverse)" << endl;
 
     mpc.ProfilerPushState("sqrt");
@@ -1415,15 +1659,19 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     fs.close();
   }
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "g_std_bern_inv" << endl;
     mpc.PrintFP(g_std_bern_inv, 5);
   }
 
   Vec<ZZ_p> g_mean;
-  if (pid > 0) {
+  if (pid > 0)
+  {
     g_mean = 2 * maf;
-  } else {
+  }
+  else
+  {
     g_mean.SetLength(m2);
   }
 
@@ -1439,16 +1687,19 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   selected.SetLength(m2);
   to_process.SetLength(m2);
 
-  for (int i = 0; i < m2; i++) {
+  for (int i = 0; i < m2; i++)
+  {
     selected[i] = -1;
   }
 
   ZZ dist_thres(Param::LD_DIST_THRES);
- 
+
   ZZ prev(-1);
-  for (int i = 0; i < m2; i++) {
+  for (int i = 0; i < m2; i++)
+  {
     selected[i] = 0;
-    if (prev < 0 || snp_pos[i] - prev > dist_thres) {
+    if (prev < 0 || snp_pos[i] - prev > dist_thres)
+    {
       selected[i] = 1;
       prev = snp_pos[i];
     }
@@ -1456,8 +1707,10 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   // At this point "selected" contains the SNP filter for PCA, shared across all parties
   uint32_t m3 = 0;
-  for (int i = 0; i < selected.length(); i++) {
-    if (selected[i] == 1) {
+  for (int i = 0; i < selected.length(); i++)
+  {
+    if (selected[i] == 1)
+    {
       m3++;
     }
   }
@@ -1467,36 +1720,48 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   mpc.ProfilerPushState("reduce_file");
 
   // Cache the reduced G for PCA
-  if (exists(cache(pid, "pca_input"))) {
+  if (exists(cache(pid, "pca_input")))
+  {
     cout << "pca_input cache found" << endl;
-  } else {
+  }
+  else
+  {
     Vec<bool> gkeep3;
     gkeep3.SetLength(m0);
-    for (int j = 0; j < m0; j++) {
+    for (int j = 0; j < m0; j++)
+    {
       gkeep3[j] = gkeep1[j] == 1;
     }
 
     ind = 0;
-    for (int j = 0; j < m0; j++) {
-      if (gkeep3[j]) {
+    for (int j = 0; j < m0; j++)
+    {
+      if (gkeep3[j])
+      {
         gkeep3[j] = gkeep2[ind] == 1;
         ind++;
       }
     }
 
     ind = 0;
-    for (int j = 0; j < m0; j++) {
-      if (gkeep3[j]) {
+    for (int j = 0; j < m0; j++)
+    {
+      if (gkeep3[j])
+      {
         gkeep3[j] = selected[ind] == 1;
         ind++;
       }
     }
 
     ifs.open(cache(pid, "input_geno").c_str(), ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.ImportSeed(10, ifs);
-    } else {
-      for (int p = 1; p <= 2; p++) {
+    }
+    else
+    {
+      for (int p = 1; p <= 2; p++)
+      {
         mpc.ImportSeed(10 + p, ifs);
       }
     }
@@ -1509,7 +1774,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     ind = -1;
     tic();
-    for (int i = 0; i < n1; i++) {
+    for (int i = 0; i < n1; i++)
+    {
       ind++;
 
       mpc.ProfilerPushState("file_io/rng");
@@ -1517,17 +1783,22 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       Mat<ZZ_p> g0, g0_mask;
       Vec<ZZ_p> miss0, miss0_mask;
 
-      while (ikeep[ind] != 1) {
-        if (pid > 0) {
+      while (ikeep[ind] != 1)
+      {
+        if (pid > 0)
+        {
           mpc.SkipData(ifs, 3, m0); // g
-          mpc.SkipData(ifs, m0); // miss
+          mpc.SkipData(ifs, m0);    // miss
 
           mpc.SwitchSeed(10);
           mpc.RandMat(g0_mask, 3, m0);
           mpc.RandVec(miss0_mask, m0);
           mpc.RestoreSeed();
-        } else {
-          for (int p = 1; p <= 2; p++) {
+        }
+        else
+        {
+          for (int p = 1; p <= 2; p++)
+          {
             mpc.SwitchSeed(10 + p);
             mpc.RandMat(g0_mask, 3, m0);
             mpc.RandVec(miss0_mask, m0);
@@ -1537,7 +1808,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         ind++;
       }
 
-      if (pid > 0) {
+      if (pid > 0)
+      {
         mpc.ReadFromFile(g0, ifs, 3, m0); // g
         mpc.ReadFromFile(miss0, ifs, m0); // miss
 
@@ -1545,13 +1817,16 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         mpc.RandMat(g0_mask, 3, m0);
         mpc.RandVec(miss0_mask, m0);
         mpc.RestoreSeed();
-      } else {
+      }
+      else
+      {
         Init(g0, 3, m0);
         Init(g0_mask, 3, m0);
         Init(miss0, m0);
         Init(miss0_mask, m0);
 
-        for (int p = 1; p <= 2; p++) {
+        for (int p = 1; p <= 2; p++)
+        {
           mpc.SwitchSeed(10 + p);
           mpc.RandMat(tmp_mat, 3, m0);
           mpc.RandVec(tmp_vec, m0);
@@ -1561,7 +1836,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
           miss0_mask += tmp_vec;
         }
       }
-      
+
       mpc.ProfilerPopState(false); // file_io/rng
 
       // Filter out loci that failed missing rate filter
@@ -1572,9 +1847,12 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       miss.SetLength(m3);
       miss_mask.SetLength(m3);
       int ind2 = 0;
-      for (int j = 0; j < m0; j++) {
-        if (gkeep3[j]) {
-          for (int k = 0; k < 3; k++) {
+      for (int j = 0; j < m0; j++)
+      {
+        if (gkeep3[j])
+        {
+          for (int k = 0; k < 3; k++)
+          {
             g[k][ind2] = g0[k][j];
             g_mask[k][ind2] = g0_mask[k][j];
           }
@@ -1591,8 +1869,11 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.BeaverWriteToFile(dosage, dosage_mask, fs);
       mpc.BeaverWriteToFile(miss, miss_mask, fs);
 
-      if ((i + 1) % bsize == 0 || i == n1 - 1) {
-        cout << "\t" << i+1 << " / " << n1 << ", "; toc(); tic();
+      if ((i + 1) % bsize == 0 || i == n1 - 1)
+      {
+        cout << "\t" << i + 1 << " / " << n1 << ", ";
+        toc();
+        tic();
       }
     }
 
@@ -1616,29 +1897,33 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Mat<ZZ_p> Y_cur;
   Init(Y_cur, kp, m3);
 
-  if (exists(cache(pid, "sketch"))) {
+  if (exists(cache(pid, "sketch")))
+  {
 
     cout << "sketch cache found" << endl;
     ifs.open(cache(pid, "sketch").c_str(), ios::in | ios::binary);
     ifs >> kp;
     mpc.ReadFromFile(Y_cur, ifs, kp, m3);
     ifs.close();
-
-  } else {
+  }
+  else
+  {
 
     mpc.ProfilerPushState("rand_proj");
-    
+
     Mat<ZZ_p> Y_cur_adj;
     Init(Y_cur_adj, kp, m3);
 
     Vec<int> bucket_count;
     bucket_count.SetLength(kp);
-    for (int i = 0; i < kp; i++) {
+    for (int i = 0; i < kp; i++)
+    {
       bucket_count[i] = 0;
     }
 
     ifs.open(cache(pid, "pca_input").c_str(), ios::in | ios::binary);
-    for (int cur = 0; cur < n1; cur++) {
+    for (int cur = 0; cur < n1; cur++)
+    {
       // Count sketch (use global PRG)
       mpc.SwitchSeed(-1);
       long bucket_index = RandomBnd(kp);
@@ -1653,9 +1938,11 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.BeaverFlipBit(miss, miss_mask);
 
       // Update running sum
-      if (pid > 0) {
+      if (pid > 0)
+      {
         Y_cur[bucket_index] += rand_sign * g_mask;
-        if (pid == 1) {
+        if (pid == 1)
+        {
           Y_cur[bucket_index] += rand_sign * g;
         }
       }
@@ -1671,12 +1958,14 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     // Subtract the adjustment factor
     mpc.BeaverReconstruct(Y_cur_adj);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       Y_cur = fp_one * Y_cur - Y_cur_adj;
     }
     Y_cur_adj.kill();
 
-    if (Param::DEBUG) {
+    if (Param::DEBUG)
+    {
       cout << "Y_cur" << endl;
       mpc.PrintFP(Y_cur[0], 5);
       cout << "g_mean_pca" << endl;
@@ -1687,9 +1976,11 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     // Get rid of empty buckets and normalize nonempty ones
     int empty_slot = 0;
-    for (int i = 0; i < kp; i++) {
-      if (bucket_count[i] > 0) {
-        ZZ_p fp_count_inv = DoubleToFP(1 / ((double) bucket_count[i]), Param::NBIT_K, Param::NBIT_F);
+    for (int i = 0; i < kp; i++)
+    {
+      if (bucket_count[i] > 0)
+      {
+        ZZ_p fp_count_inv = DoubleToFP(1 / ((double)bucket_count[i]), Param::NBIT_K, Param::NBIT_F);
         Y_cur[empty_slot] = Y_cur[i] * fp_count_inv;
         empty_slot++;
       }
@@ -1702,7 +1993,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     fs.open(cache(pid, "sketch").c_str(), ios::out | ios::binary);
     fs << kp;
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.WriteToFile(Y_cur, fs);
     }
     fs.close();
@@ -1718,20 +2010,23 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   Mat<ZZ_p> gQ;
 
-  if (exists(cache(pid, "piter"))) {
+  if (exists(cache(pid, "piter")))
+  {
 
     cout << "piter cache found" << endl;
     ifs.open(cache(pid, "piter").c_str(), ios::in | ios::binary);
     mpc.ReadFromFile(gQ, ifs, n1, kp);
     ifs.close();
-    
-  } else {
+  }
+  else
+  {
 
     // Divide by standard deviation
     Mat<ZZ_p> Y;
     Init(Y, kp, m3);
 
-    for (int i = 0; i < kp; i++) {
+    for (int i = 0; i < kp; i++)
+    {
       mpc.BeaverMultElem(Y[i], Y_cur[i], Y_cur_mask[i], g_stdinv_pca, g_stdinv_pca_mask);
     }
     Y_cur.kill();
@@ -1753,13 +2048,15 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     Mat<ZZ_p> Q_scaled_gmean, Q_scaled_gmean_mask;
 
     /* Power iteration */
-    for (int pit = 0; pit <= Param::NUM_POWER_ITER; pit++) {
+    for (int pit = 0; pit <= Param::NUM_POWER_ITER; pit++)
+    {
       /* This section is ran before each iteration AND once after all iterations */
       mpc.BeaverPartition(Q_mask, Q);
 
       // Normalize Q by standard deviations
       Init(Q_scaled, kp, m3);
-      for (int i = 0; i < kp; i++) {
+      for (int i = 0; i < kp; i++)
+      {
         mpc.BeaverMultElem(Q_scaled[i], Q[i], Q_mask[i], g_stdinv_pca, g_stdinv_pca_mask);
       }
       mpc.BeaverReconstruct(Q_scaled);
@@ -1769,16 +2066,17 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
       // Pre-multiply with g_mean to simplify calculation of centering matrix
       Init(Q_scaled_gmean, kp, m3);
-      for (int i = 0; i < kp; i++) {
+      for (int i = 0; i < kp; i++)
+      {
         mpc.BeaverMultElem(Q_scaled_gmean[i], Q_scaled[i], Q_scaled_mask[i],
                            g_mean_pca, g_mean_pca_mask);
       }
       mpc.BeaverReconstruct(Q_scaled_gmean);
       mpc.Trunc(Q_scaled_gmean);
 
-      mpc.Transpose(Q_scaled); // m3-by-kp
+      mpc.Transpose(Q_scaled);                 // m3-by-kp
       transpose(Q_scaled_mask, Q_scaled_mask); // m3-by-kp, unlike mpc.Transpose, P0 also transposes
-      mpc.Transpose(Q_scaled_gmean); // m3-by-kp
+      mpc.Transpose(Q_scaled_gmean);           // m3-by-kp
       mpc.BeaverPartition(Q_scaled_gmean_mask, Q_scaled_gmean);
 
       Mat<ZZ_p> g, g_mask, miss, miss_mask;
@@ -1789,7 +2087,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       Init(g_mask, bsize, m3);
       Init(miss, bsize, m3);
       Init(miss_mask, bsize, m3);
-      
+
       /* Pass 1 */
       Init(gQ, n1, kp);
       Init(gQ_adj, n1, kp);
@@ -1798,24 +2096,28 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
       mpc.ProfilerPushState("file_io");
       ifs.open(cache(pid, "pca_input").c_str(), ios::in | ios::binary);
-      for (int cur = 0; cur < n1; cur++) {
+      for (int cur = 0; cur < n1; cur++)
+      {
         mpc.BeaverReadFromFile(g[cur % bsize], g_mask[cur % bsize], ifs, m3);
         mpc.BeaverReadFromFile(miss[cur % bsize], miss_mask[cur % bsize], ifs, m3);
         mpc.BeaverFlipBit(miss[cur % bsize], miss_mask[cur % bsize]);
 
-        if (cur % bsize == bsize - 1) {
+        if (cur % bsize == bsize - 1)
+        {
           mpc.ProfilerPopState(false); // file_io
 
           Init(tmp_mat, bsize, kp);
           mpc.BeaverMult(tmp_mat, g, g_mask, Q_scaled, Q_scaled_mask);
-          for (int i = 0; i < bsize; i++) {
-            gQ[cur-(bsize-1)+i] = tmp_mat[i];
+          for (int i = 0; i < bsize; i++)
+          {
+            gQ[cur - (bsize - 1) + i] = tmp_mat[i];
           }
 
           Init(tmp_mat, bsize, kp);
           mpc.BeaverMult(tmp_mat, miss, miss_mask, Q_scaled_gmean, Q_scaled_gmean_mask);
-          for (int i = 0; i < bsize; i++) {
-            gQ_adj[cur-(bsize-1)+i] = tmp_mat[i];
+          for (int i = 0; i < bsize; i++)
+          {
+            gQ_adj[cur - (bsize - 1) + i] = tmp_mat[i];
           }
 
           mpc.ProfilerPushState("file_io");
@@ -1825,7 +2127,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.ProfilerPopState(false); // file_io
 
       long remainder = n1 % bsize;
-      if (remainder > 0) {
+      if (remainder > 0)
+      {
         g.SetDims(remainder, m3);
         g_mask.SetDims(remainder, m3);
         miss.SetDims(remainder, m3);
@@ -1833,27 +2136,30 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
         Init(tmp_mat, remainder, kp);
         mpc.BeaverMult(tmp_mat, g, g_mask, Q_scaled, Q_scaled_mask);
-        for (int i = 0; i < remainder; i++) {
-          gQ[n1-remainder+i] = tmp_mat[i];
+        for (int i = 0; i < remainder; i++)
+        {
+          gQ[n1 - remainder + i] = tmp_mat[i];
         }
 
         Init(tmp_mat, remainder, kp);
         mpc.BeaverMult(tmp_mat, miss, miss_mask, Q_scaled_gmean, Q_scaled_gmean_mask);
-        for (int i = 0; i < remainder; i++) {
-          gQ_adj[n1-remainder+i] = tmp_mat[i];
+        for (int i = 0; i < remainder; i++)
+        {
+          gQ_adj[n1 - remainder + i] = tmp_mat[i];
         }
-
       }
 
       mpc.BeaverReconstruct(gQ);
       mpc.BeaverReconstruct(gQ_adj);
-      if (pid > 0) {
+      if (pid > 0)
+      {
         gQ -= gQ_adj;
       }
 
       mpc.ProfilerPopState(false); // data_scan1
 
-      if (pit == Param::NUM_POWER_ITER) { // Quit if all iterations are performed
+      if (pit == Param::NUM_POWER_ITER)
+      { // Quit if all iterations are performed
         break;
       }
 
@@ -1861,7 +2167,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.ProfilerPushState("qr_n");
       mpc.OrthonormalBasis(Q, gQ);
       mpc.ProfilerPopState(false); // qr_n
-      mpc.Transpose(Q); // n1-by-kp
+      mpc.Transpose(Q);            // n1-by-kp
 
       mpc.BeaverPartition(Q_mask, Q);
 
@@ -1882,7 +2188,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       // Pass 2
       mpc.ProfilerPushState("file_io");
       ifs.open(cache(pid, "pca_input").c_str(), ios::in | ios::binary);
-      for (int cur = 0; cur < n1; cur++) {
+      for (int cur = 0; cur < n1; cur++)
+      {
         mpc.BeaverReadFromFile(g[cur % bsize], g_mask[cur % bsize], ifs, m3);
         mpc.BeaverReadFromFile(miss[cur % bsize], miss_mask[cur % bsize], ifs, m3);
         mpc.BeaverFlipBit(miss[cur % bsize], miss_mask[cur % bsize]);
@@ -1890,7 +2197,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         Qsub[cur % bsize] = Q[cur];
         Qsub_mask[cur % bsize] = Q_mask[cur];
 
-        if (cur % bsize == bsize - 1) {
+        if (cur % bsize == bsize - 1)
+        {
           mpc.ProfilerPopState(false); // file_io
 
           mpc.Transpose(Qsub);
@@ -1909,14 +2217,15 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.ProfilerPopState(false); // file_io
 
       remainder = n1 % bsize;
-      if (remainder > 0) {
+      if (remainder > 0)
+      {
         g.SetDims(remainder, m3);
         g_mask.SetDims(remainder, m3);
         miss.SetDims(remainder, m3);
         miss_mask.SetDims(remainder, m3);
         Qsub.SetDims(remainder, kp);
         Qsub_mask.SetDims(remainder, kp);
-        
+
         mpc.Transpose(Qsub);
         transpose(Qsub_mask, Qsub_mask);
 
@@ -1941,14 +2250,16 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
       Mat<ZZ_p> gQ_adj_gmean;
       Init(gQ_adj_gmean, kp, m3);
-      for (int i = 0; i < kp; i++) {
+      for (int i = 0; i < kp; i++)
+      {
         mpc.BeaverMultElem(gQ_adj_gmean[i], gQ_adj[i], gQ_adj_mask[i],
                            g_mean_pca, g_mean_pca_mask);
       }
       mpc.BeaverReconstruct(gQ_adj_gmean);
       mpc.Trunc(gQ_adj_gmean);
 
-      if (pid > 0) {
+      if (pid > 0)
+      {
         gQ -= gQ_adj_gmean;
       }
       gQ_adj_gmean.kill();
@@ -1959,7 +2270,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       Mat<ZZ_p> gQ_scaled;
       gQ_scaled.SetDims(kp, m3);
       clear(gQ_scaled);
-      for (int i = 0; i < kp; i++) {
+      for (int i = 0; i < kp; i++)
+      {
         mpc.BeaverMultElem(gQ_scaled[i], gQ[i], gQ_mask[i], g_stdinv_pca, g_stdinv_pca_mask);
       }
       mpc.BeaverReconstruct(gQ_scaled);
@@ -1969,16 +2281,17 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       mpc.OrthonormalBasis(Q, gQ_scaled);
       mpc.ProfilerPopState(false); // qr_m
 
-      cout << "Iter " << pit + 1 << " complete, "; toc();
+      cout << "Iter " << pit + 1 << " complete, ";
+      toc();
       tic();
     }
 
     fs.open(cache(pid, "piter").c_str(), ios::out | ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.WriteToFile(gQ, fs);
     }
     fs.close();
-
   }
 
   mpc.ProfilerPopState(true); // power_iter
@@ -1988,7 +2301,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   gQ.kill();
 
   cout << "Data projected to subspace" << endl;
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "Z" << endl;
     mpc.PrintFP(Z[0], 5);
   }
@@ -1997,16 +2311,18 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Init(V, k, n1);
 
   /* Eigendecomposition */
-  if (exists(cache(pid, "eigen"))) {
+  if (exists(cache(pid, "eigen")))
+  {
 
     cout << "eigen cache found" << endl;
     ifs.open(cache(pid, "eigen").c_str(), ios::binary);
     mpc.ReadFromFile(V, ifs, k, n1);
     ifs.close();
+  }
+  else
+  {
 
-  } else {
-
-    ZZ_p fp_m2_inv = DoubleToFP(1 / ((double) m2), Param::NBIT_K, Param::NBIT_F);
+    ZZ_p fp_m2_inv = DoubleToFP(1 / ((double)m2), Param::NBIT_K, Param::NBIT_F);
     Z *= fp_m2_inv;
     mpc.Trunc(Z);
 
@@ -2018,7 +2334,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     /* Form covariance matrix */
     Mat<ZZ_p> Z_gram;
     Init(Z_gram, kp, kp);
-    for (int i = 0; i < kp; i++) {
+    for (int i = 0; i < kp; i++)
+    {
       mpc.BeaverMult(Z_gram[i], Z, Z_mask, Z[i], Z_mask[i]);
     }
     mpc.BeaverReconstruct(Z_gram);
@@ -2026,7 +2343,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     cout << "Constructed reduced eigenvalue problem" << endl;
 
-    if (Param::DEBUG) {
+    if (Param::DEBUG)
+    {
       cout << "Z_gram" << endl;
       mpc.PrintFP(Z_gram[0], 5);
     }
@@ -2045,7 +2363,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     cout << "Selected K eigenvectors" << endl;
     mpc.ProfilerPopState(false); // eigen_solve
 
-    if (Param::DEBUG) {
+    if (Param::DEBUG)
+    {
       mpc.PrintFP(U[0], 5);
     }
 
@@ -2061,11 +2380,11 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     mpc.Trunc(V);
 
     fs.open(cache(pid, "eigen").c_str(), ios::out | ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.WriteToFile(V, fs);
     }
     fs.close();
-
   }
 
   Z.kill();
@@ -2078,8 +2397,10 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   // Concatenate covariate matrix and jointly orthogonalize
   mpc.Transpose(cov);
   V.SetDims(k + Param::NUM_COVS, n1);
-  if (pid > 0) {
-    for (int i = 0; i < Param::NUM_COVS; i++) {
+  if (pid > 0)
+  {
+    for (int i = 0; i < Param::NUM_COVS; i++)
+    {
       V[k + i] = cov[i] * fp_one;
     }
   }
@@ -2092,7 +2413,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   cout << "Bases for top singular vectors and covariates calculated" << endl;
   mpc.ProfilerPopState(false); // covar
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     mpc.PrintBeaverFP(V[0], V_mask[0], 5);
   }
 
@@ -2108,7 +2430,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   Vec<ZZ_p> Vp_mask;
   mpc.BeaverPartition(Vp_mask, Vp);
-  
+
   Vec<ZZ_p> VVp;
   Init(VVp, n1);
   mpc.BeaverMult(VVp, Vp, Vp_mask, V, V_mask);
@@ -2132,8 +2454,10 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> V_sum, V_sum_mask;
   Init(V_sum, k + Param::NUM_COVS);
   Init(V_sum_mask, k + Param::NUM_COVS);
-  for (int i = 0; i < k + Param::NUM_COVS; i++) {
-    for (int j = 0; j < n1; j++) {
+  for (int i = 0; i < k + Param::NUM_COVS; i++)
+  {
+    for (int j = 0; j < n1; j++)
+    {
       V_sum[i] += V[i][j];
       V_sum_mask[i] += V_mask[i][j];
     }
@@ -2144,7 +2468,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   mpc.BeaverMult(u, V_sum, V_sum_mask, V, V_mask);
   mpc.BeaverReconstruct(u);
   mpc.Trunc(u);
-  if (pid > 0) {
+  if (pid > 0)
+  {
     u *= -1;
     mpc.AddPublic(u, fp_one);
   }
@@ -2152,7 +2477,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> u_mask;
   mpc.BeaverPartition(u_mask, u);
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "u" << endl;
     mpc.PrintBeaverFP(u, u_mask, 10);
   }
@@ -2170,7 +2496,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   mpc.ProfilerPushState("data_scan");
 
-  if (exists(cache(pid, "gwas_stats"))) {
+  if (exists(cache(pid, "gwas_stats")))
+  {
     cout << "GWAS statistics cache found" << endl;
     ifs.open(cache(pid, "gwas_stats").c_str(), ios::binary);
     mpc.ReadFromFile(sx, ifs, m2);
@@ -2178,14 +2505,19 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     mpc.ReadFromFile(sxp, ifs, m2);
     mpc.ReadFromFile(B, ifs, k + Param::NUM_COVS, m2);
     ifs.close();
-
-  } else {
+  }
+  else
+  {
 
     ifs.open(cache(pid, "input_geno").c_str(), ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.ImportSeed(10, ifs);
-    } else {
-      for (int p = 1; p <= 2; p++) {
+    }
+    else
+    {
+      for (int p = 1; p <= 2; p++)
+      {
         mpc.ImportSeed(10 + p, ifs);
       }
     }
@@ -2215,13 +2547,16 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
     Vec<bool> gkeep3;
     gkeep3.SetLength(m0);
-    for (int j = 0; j < m0; j++) {
+    for (int j = 0; j < m0; j++)
+    {
       gkeep3[j] = gkeep1[j] == 1;
     }
 
     ind = 0;
-    for (int j = 0; j < m0; j++) {
-      if (gkeep3[j]) {
+    for (int j = 0; j < m0; j++)
+    {
+      if (gkeep3[j])
+      {
         gkeep3[j] = gkeep2[ind] == 1;
         ind++;
       }
@@ -2231,23 +2566,29 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     tic();
     mpc.ProfilerPushState("file_io/rng");
     cout << "GWAS pass:" << endl;
-    for (int cur = 0; cur < n1; cur++) {
+    for (int cur = 0; cur < n1; cur++)
+    {
       ind++;
 
       Mat<ZZ_p> g0, g0_mask;
       Vec<ZZ_p> miss0, miss0_mask;
 
-      while (ikeep[ind] != 1) {
-        if (pid > 0) {
+      while (ikeep[ind] != 1)
+      {
+        if (pid > 0)
+        {
           mpc.SkipData(ifs, 3, m0); // g
-          mpc.SkipData(ifs, m0); // miss
+          mpc.SkipData(ifs, m0);    // miss
 
           mpc.SwitchSeed(10);
           mpc.RandMat(g0_mask, 3, m0);
           mpc.RandVec(miss0_mask, m0);
           mpc.RestoreSeed();
-        } else {
-          for (int p = 1; p <= 2; p++) {
+        }
+        else
+        {
+          for (int p = 1; p <= 2; p++)
+          {
             mpc.SwitchSeed(10 + p);
             mpc.RandMat(g0_mask, 3, m0);
             mpc.RandVec(miss0_mask, m0);
@@ -2257,7 +2598,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         ind++;
       }
 
-      if (pid > 0) {
+      if (pid > 0)
+      {
         mpc.ReadFromFile(g0, ifs, 3, m0); // g
         mpc.ReadFromFile(miss0, ifs, m0); // miss
 
@@ -2265,13 +2607,16 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         mpc.RandMat(g0_mask, 3, m0);
         mpc.RandVec(miss0_mask, m0);
         mpc.RestoreSeed();
-      } else {
+      }
+      else
+      {
         Init(g0, 3, m0);
         Init(g0_mask, 3, m0);
         Init(miss0, m0);
         Init(miss0_mask, m0);
 
-        for (int p = 1; p <= 2; p++) {
+        for (int p = 1; p <= 2; p++)
+        {
           mpc.SwitchSeed(10 + p);
           mpc.RandMat(tmp_mat, 3, m0);
           mpc.RandVec(tmp_vec, m0);
@@ -2281,7 +2626,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
           miss0_mask += tmp_vec;
         }
       }
-      
+
       Mat<ZZ_p> g, g_mask;
       Vec<ZZ_p> miss, miss_mask;
       g.SetDims(3, m2);
@@ -2289,9 +2634,12 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       g_mask.SetDims(3, m2);
       miss_mask.SetLength(m2);
       int ind2 = 0;
-      for (int j = 0; j < m0; j++) {
-        if (gkeep3[j]) {
-          for (int k = 0; k < 3; k++) {
+      for (int j = 0; j < m0; j++)
+      {
+        if (gkeep3[j])
+        {
+          for (int k = 0; k < 3; k++)
+          {
             g[k][ind2] = g0[k][j];
             g_mask[k][ind2] = g0_mask[k][j];
           }
@@ -2312,7 +2660,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       V_sub[cur % bsize] = V[cur];
       V_mask_sub[cur % bsize] = V_mask[cur];
 
-      if (cur % bsize == bsize - 1) {
+      if (cur % bsize == bsize - 1)
+      {
         mpc.ProfilerPopState(false); // file_io/rng
 
         mpc.BeaverMult(sx, u_vec, u_mask_vec, dosage, dosage_mask);
@@ -2321,7 +2670,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
         Mat<ZZ_p> sxx_tmp;
         Init(sxx_tmp, bsize, m2);
         mpc.BeaverMultElem(sxx_tmp, dosage, dosage_mask, dosage, dosage_mask);
-        for (int b = 0; b < bsize; b++) {
+        for (int b = 0; b < bsize; b++)
+        {
           sxx += sxx_tmp[b];
         }
         sxx_tmp.kill();
@@ -2331,7 +2681,9 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
         mpc.BeaverMult(B, V_sub, V_mask_sub, dosage, dosage_mask);
 
-        cout << "\t" << cur+1 << " / " << n1 << ", "; toc(); tic();
+        cout << "\t" << cur + 1 << " / " << n1 << ", ";
+        toc();
+        tic();
 
         Init(dosage, bsize, m2);
         Init(dosage_mask, bsize, m2);
@@ -2345,7 +2697,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
     mpc.ProfilerPopState(false); // file_io/rng
 
     long remainder = n1 % bsize;
-    if (remainder > 0) {
+    if (remainder > 0)
+    {
       dosage.SetDims(remainder, m2);
       dosage_mask.SetDims(remainder, m2);
       u_vec.SetLength(remainder);
@@ -2361,7 +2714,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
       Mat<ZZ_p> sxx_tmp;
       Init(sxx_tmp, remainder, m2);
       mpc.BeaverMultElem(sxx_tmp, dosage, dosage_mask, dosage, dosage_mask);
-      for (int b = 0; b < remainder; b++) {
+      for (int b = 0; b < remainder; b++)
+      {
         sxx += sxx_tmp[b];
       }
       sxx_tmp.kill();
@@ -2371,7 +2725,9 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
       mpc.BeaverMult(B, V_sub, V_mask_sub, dosage, dosage_mask);
 
-      cout << "\t" << n1 << " / " << n1 << ", "; toc(); tic();
+      cout << "\t" << n1 << " / " << n1 << ", ";
+      toc();
+      tic();
     }
 
     mpc.BeaverReconstruct(sx);
@@ -2392,7 +2748,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   mpc.ProfilerPopState(true); // data_scan
 
-  if (Param::DEBUG) {
+  if (Param::DEBUG)
+  {
     cout << "sx" << endl;
     mpc.PrintFP(sx, 3);
     cout << "sxp" << endl;
@@ -2408,15 +2765,19 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> BB;
   mpc.InnerProd(BB, B); // m2
   mpc.Trunc(BB);
-  if (pid > 0) {
+  if (pid > 0)
+  {
     sxx -= BB;
   }
 
   ZZ_p sp(0);
-  if (pid > 0) {
-    for (int i = 0; i < n1; i++) {
+  if (pid > 0)
+  {
+    for (int i = 0; i < n1; i++)
+    {
       sp += p_hat_mask[i];
-      if (pid == 1) {
+      if (pid == 1)
+      {
         sp += p_hat[i];
       }
     }
@@ -2426,7 +2787,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   mpc.BeaverInnerProd(spp, p_hat, p_hat_mask);
   mpc.BeaverReconstruct(spp);
 
-  ZZ_p fp_n1_inv = DoubleToFP(1 / ((double) n1), Param::NBIT_K, Param::NBIT_F);
+  ZZ_p fp_n1_inv = DoubleToFP(1 / ((double)n1), Param::NBIT_K, Param::NBIT_F);
   sx *= fp_n1_inv;
   sp *= fp_n1_inv;
 
@@ -2464,27 +2825,33 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   Vec<ZZ_p> numer, denom;
   Init(numer, m2);
   Init(denom, m2 + 1);
-  if (pid > 0) {
+  if (pid > 0)
+  {
     numer = sxp - spsx;
-    for (int i = 0; i < m2; i++) {
+    for (int i = 0; i < m2; i++)
+    {
       denom[i] = sxx[i] - sx2[i];
     }
     denom[m2] = spp - sp2;
   }
 
   Vec<ZZ_p> denom1_sqrt_inv;
-  if (exists(cache(pid, "denom_inv"))) {
+  if (exists(cache(pid, "denom_inv")))
+  {
     cout << "denom_inv cache found" << endl;
     ifs.open(cache(pid, "denom_inv").c_str(), ios::binary);
     mpc.ReadFromFile(denom1_sqrt_inv, ifs, denom.length());
     ifs.close();
-  } else {
+  }
+  else
+  {
     mpc.ProfilerPushState("sqrt");
     mpc.FPSqrt(tmp_vec, denom1_sqrt_inv, denom);
     mpc.ProfilerPopState(false); // sqrt
 
     fs.open(cache(pid, "denom_inv").c_str(), ios::out | ios::binary);
-    if (pid > 0) {
+    if (pid > 0)
+    {
       mpc.WriteToFile(denom1_sqrt_inv, fs);
     }
     fs.close();
@@ -2494,7 +2861,7 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   tmp_vec.kill();
 
   ZZ_p denom2_sqrt_inv = denom1_sqrt_inv[m2]; // p term
-  denom1_sqrt_inv.SetLength(m2); // truncate
+  denom1_sqrt_inv.SetLength(m2);              // truncate
 
   Vec<ZZ_p> z;
   mpc.MultElem(z, numer, denom1_sqrt_inv);
@@ -2507,11 +2874,13 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
 
   cout << "Association statistics calculated" << endl;
   mpc.RevealSym(z);
-  if (pid == 2) {
+  if (pid == 2)
+  {
     Vec<double> z_double;
     FPToDouble(z_double, z, Param::NBIT_K, Param::NBIT_F);
     ofs.open(outname("assoc").c_str(), ios::out);
-    for (int i = 0; i < z_double.length(); i++) {
+    for (int i = 0; i < z_double.length(); i++)
+    {
       ofs << z_double[i] << endl;
     }
     ofs.close();
@@ -2523,7 +2892,8 @@ bool gwas_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
-bool test_protocol(MPCEnv& mpc, int pid) {
+bool test_protocol(MPCEnv &mpc, int pid)
+{
 
   int vec_len = 3;
   Vec<ZZ_p> in_vec;
@@ -2537,7 +2907,6 @@ bool test_protocol(MPCEnv& mpc, int pid) {
   mpc.Powers(out_mat, in_vec, 5);
   mpc.RevealSym(out_mat);
   cout << out_mat << endl;
-
 
   /* Householder
   Vec<ZZ_p> in_vec, out_vec;
@@ -2567,78 +2936,157 @@ bool test_protocol(MPCEnv& mpc, int pid) {
   return true;
 }
 
+// class optStruct:
+//     def __init__(self, dataMatIn, classLabels, C, toler, kTup):  # 存储各类参数
+//         self.X = dataMatIn  # 数据特征
+//         self.labelMat = classLabels  # 数据类别
+//         self.C = C  # 软间隔参数C，参数越大，非线性拟合能力越强
+//         self.tol = toler  # 停止阀值
+//         self.m = shape(dataMatIn)[0]  # 数据行数
+//         self.alphas = mat(zeros((self.m, 1)))
+//         self.b = 0  # 初始设为0
+//         self.eCache = mat(zeros((self.m, 2)))  # 缓存
+//         self.K = mat(zeros((self.m, self.m)))  # 核函数的计算结果
+//         for i in range(self.m):
+//             self.K[:, i] = kernelTrans(self.X, self.X[i, :], kTup)
 
-// bool svm_protocol(MPCEnv& mpc, int pid) {
-//   // parse params
-//   float C = 200; // Param::NUM_C
-//   float threshold = 0.0001;
-//   int max_iter = 10000;
-//   // default kernel function: linear
+class OptStruct
+{
+public:
+  OptStruct();
+  OptStruct(Mat<ZZ_p> x, Mat<ZZ_p> lb, int c, float t);
+  Mat<ZZ_p> kernelTrans(Mat<ZZ_p> feature, Mat<ZZ_p> line);
 
-//   // share data
-//   Mat<ZZ_p> X;
-//   Mat<ZZ_p> labels;
+private:
+  Mat<ZZ_p> X;        // features of data
+  Mat<ZZ_p> labelMat; // ground-truth labels of data
+  int C;              // soft margin
+  float tol;          // threshold to stop
+  int m;              // lines of data
+  Mat<ZZ_p> alphas;   // the mat of alphs, refer to SVM algo
+  int b;              // default = 0
+  Mat<ZZ_p> eCache;   // the cache
+  Mat<ZZ_p> K;        // the result of kernel function
+};
 
-//   X.SetDims(100, 5);
-//   int m = X.NumRows();
-//   labels.SetDims(100, 1);
-//   // init data, just for test
-//   X = 1;
-//   labels = 0;
-//   mpc.Transpose(labels); // 1 * m
+OptStruct::OptStruct()
+{
+  cout << "nothing input" << endl;
+}
 
-//   mpc.RandMat(X, m, 5);
-//   mpc.RandVec(labels, m);
+OptStruct::OptStruct(
+    Mat<ZZ_p> x,
+    Mat<ZZ_p> lb,
+    int c = 200,
+    float t = 0.0001)
+    : X(x), labelMat(lb), C(c), tol(t), b(0)
+{
+  // init m, alphas, eCache and K
+  m = x.NumRows();
+  Init(alphas, m, 1);
+  Init(eCache, m, 2);
+  Init(K, m, m);
+  for (int i = 0; i < m; ++i)
+  {
+    for (int j = 0; j < m; ++j)
+    {
+      K[i][j] = 0; // K[:, i] = kernelTrans(self.X, self.X[i, :])
+      // K = kernelTrans(X, X[i]);
+    }
+  }
+  cout << "OptStruct has init" << endl;
+}
 
-//   // init alphas
-//   Mat<ZZ_p> alphas;
-//   alphas.SerDims(m, 1); // m * 1
-//   alphas = 0;
+// kernel function
+Mat<ZZ_p> OptStruct::kernelTrans(Mat<ZZ_p> feature, Mat<ZZ_p> line)
+{
+  return feature;
+}
 
-//   // init kernels results
-//   Mat<ZZ_p> K;
-//   K.SetDims(X.NumRows(), X.NumRows());
-//   K = 0;
-//   for (int i = 0; i < m; i++) {
-//       mpc.MultMat(K[i], X, mpc.Transpose(X[i]))
-//   }
-//   mpc.Transpose(K)
+bool svm_protocol(MPCEnv &mpc, int pid)
+{
 
-//   float b = 0.0;
+  Mat<ZZ_p> X, labels;
+  Init(X, 100, 5);
+  const int m = X.NumRows();
 
-//   // tmp_mat
-//   Mat<ZZ_p> tmp_mat;
-//   tmp_mat.SetDims(m, m);
+  Init(labels, m, 1);
+  // init data(mock)
+  mpc.RandMat(X, X.NumRows(), X.NumCols());
+  mpc.RandMat(labels, m, 1);
 
-//   // define g_x
-//   Vec<ZZ_p> gx_i;
-//   gx_i.SetLength(m, 1);
+  OptStruct test = OptStruct(X, labels);
 
-//   // SMO solve
-//   int iter = 0;
-//   bool entireset = false;
-//   int alpha_pairs_changed = 0;
-//   while (iter < max_iter and (alpha_pairs_changed > 0 or entireset)) {
-//     alpha_pairs_changed = 0;
-//     if (entireset) {
-//       for (int i = 0; i < m; i++) {
-//         // inner L
-//         // calculate E value
-//         mpc.MultMat(tmp_mat, alphas, labels);
-//         mpc.MultMat(gx_i, K[i], tmp_mat);
-//         gx_i += b;
-//         E_i = gx_i - labels[i];
-//         /*
-//         fXk = float(multiply(oS.alphas, oS.labelMat).T*oS.K[:, k] + oS.b)
-//         Ek = fXk - float(oS.labelMat[k])
-//         return Ek
-//         */
-//       }
-//     }
-//   }
+  // the old version
+  //   // parse params
+  //   float C = 200; // Param::NUM_C
+  //   float threshold = 0.0001;
+  //   int max_iter = 10000;
+  //   // default kernel function: linear
 
-//   return true;
-// }
+  //   // share data
+  //   Mat<ZZ_p> X;
+  //   Mat<ZZ_p> labels;
 
+  //   X.SetDims(100, 5);
+  //   int m = X.NumRows();
+  //   labels.SetDims(100, 1);
+  //   // init data, just for test
+  //   X = 1;
+  //   labels = 0;
+  //   mpc.Transpose(labels); // 1 * m
+
+  //   mpc.RandMat(X, m, 5);
+  //   mpc.RandVec(labels, m);
+
+  //   // init alphas
+  //   Mat<ZZ_p> alphas;
+  //   alphas.SerDims(m, 1); // m * 1
+  //   alphas = 0;
+
+  //   // init kernels results
+  //   Mat<ZZ_p> K;
+  //   K.SetDims(X.NumRows(), X.NumRows());
+  //   K = 0;
+  //   for (int i = 0; i < m; i++) {
+  //       mpc.MultMat(K[i], X, mpc.Transpose(X[i]))
+  //   }
+  //   mpc.Transpose(K)
+
+  //   float b = 0.0;
+
+  //   // tmp_mat
+  //   Mat<ZZ_p> tmp_mat;
+  //   tmp_mat.SetDims(m, m);
+
+  //   // define g_x
+  //   Vec<ZZ_p> gx_i;
+  //   gx_i.SetLength(m, 1);
+
+  //   // SMO solve
+  //   int iter = 0;
+  //   bool entireset = false;
+  //   int alpha_pairs_changed = 0;
+  //   while (iter < max_iter and (alpha_pairs_changed > 0 or entireset)) {
+  //     alpha_pairs_changed = 0;
+  //     if (entireset) {
+  //       for (int i = 0; i < m; i++) {
+  //         // inner L
+  //         // calculate E value
+  //         mpc.MultMat(tmp_mat, alphas, labels);
+  //         mpc.MultMat(gx_i, K[i], tmp_mat);
+  //         gx_i += b;
+  //         E_i = gx_i - labels[i];
+  //         /*
+  //         fXk = float(multiply(oS.alphas, oS.labelMat).T*oS.K[:, k] + oS.b)
+  //         Ek = fXk - float(oS.labelMat[k])
+  //         return Ek
+  //         */
+  //       }
+  //     }
+  //   }
+
+  return true;
+}
 
 #endif
