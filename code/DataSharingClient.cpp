@@ -153,6 +153,38 @@ bool send_stream(string data_dir, MPCEnv& mpc, int mode) {
   return true;
 }
 
+// for svm protocol
+bool send_stream(string data_dir, MPCEnv& mpc) {
+  int NUM_COVS = 3;
+  string svm_train_file = data_dir + "svm_train.txt";
+
+  ifstream fin_svm(svm_train_file.c_str());
+
+  if (!fin_svm.is_open()) {
+    cout << "Error: could not open " << svm_train_file << endl;
+    return false;
+  }
+
+  long val;
+  string line;
+  
+  uint32_t lineno = 0;
+  while (getline(fin_svm, line)) {
+    istringstream iss_svm(line);
+
+    Vec<ZZ_p> p;
+    p.SetLength(1 + NUM_COVS);
+    // fin_svm >> p[0];
+    cout << line << endl;
+
+    lineno++;
+  }
+
+  fin_svm.close();
+
+  return true;
+}
+
 int main(int argc, char** argv) {
   if (argc < 3) {
     cout << "Usage: DataSharingClient party_id param_file [data_dir (for P3/SP)]" << endl;
@@ -202,13 +234,14 @@ int main(int argc, char** argv) {
 
   bool success;
   if (pid < 3) {
-    success = data_sharing_protocol(mpc, pid);
+    success = svm_data_sharing_protocol(mpc, pid);
   } else {
     /* Stream data upon request */
     int signal = mpc.ReceiveInt(1);
 
     while (signal != GwasIterator::TERM_CODE) {
-      success = send_stream(data_dir, mpc, signal);
+      // success = send_stream(data_dir, mpc, signal);
+      success = send_stream(data_dir, mpc);
       if (!success) break;
 
       signal = mpc.ReceiveInt(1);

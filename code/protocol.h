@@ -15,6 +15,7 @@
 #include <algorithm>
 
 // #include<typeinfo>
+#include "mysvm.h"
 
 #include <chrono>
 
@@ -2892,115 +2893,100 @@ bool gwas_protocol(MPCEnv &mpc, int pid)
   return true;
 }
 
-bool test_protocol(MPCEnv &mpc, int pid)
+bool svm_data_sharing_protocol(MPCEnv &mpc, int pid)
 {
+  int n = Param::NUM_INDS;
 
-  int vec_len = 3;
-  Vec<ZZ_p> in_vec;
-  in_vec.SetLength(vec_len);
-  Mat<ZZ_p> out_mat;
+  fstream fs;
 
-  for (int i = 0; i < vec_len; i++)
-    in_vec[i] = pid == 2 ? i : 0;
+  Vec<ZZ_p> pheno;
+  Init(pheno, n);
 
-  cout << "Powers()" << endl;
-  mpc.Powers(out_mat, in_vec, 5);
-  mpc.RevealSym(out_mat);
-  cout << out_mat << endl;
+  Mat<ZZ_p> cov;
+  Init(cov, n, Param::NUM_COVS);
 
-  /* Householder
-  Vec<ZZ_p> in_vec, out_vec;
-
-  in_vec.SetLength(vec_len);
-  out_vec.SetLength(vec_len);
-
-  for (int i = 0; i < vec_len; i++) {
-    IntToFP(in_vec[i], 0, Param::NBIT_K, Param::NBIT_F);
-    IntToFP(out_vec[i], 0, Param::NBIT_K, Param::NBIT_F);
-  }
-
-  if (pid == 2)
-    // IntToFP(in_vec[2], 2, Param::NBIT_K, Param::NBIT_F);
-    in_vec[2] = 2;
-
-  mpc.RevealSym(in_vec);
-  mpc.PrintFP(in_vec);
-
-  mpc.Householder(out_vec, in_vec);
-  mpc.RevealSym(out_vec);
-
-  Vec<double> result;
-  FPToDouble(result, out_vec, Param::NBIT_K, Param::NBIT_F);
-  cout << "output_v: " << result << endl;
-  */
-  return true;
-}
-
-// class optStruct:
-//     def __init__(self, dataMatIn, classLabels, C, toler, kTup):  # 存储各类参数
-//         self.X = dataMatIn  # 数据特征
-//         self.labelMat = classLabels  # 数据类别
-//         self.C = C  # 软间隔参数C，参数越大，非线性拟合能力越强
-//         self.tol = toler  # 停止阀值
-//         self.m = shape(dataMatIn)[0]  # 数据行数
-//         self.alphas = mat(zeros((self.m, 1)))
-//         self.b = 0  # 初始设为0
-//         self.eCache = mat(zeros((self.m, 2)))  # 缓存
-//         self.K = mat(zeros((self.m, self.m)))  # 核函数的计算结果
-//         for i in range(self.m):
-//             self.K[:, i] = kernelTrans(self.X, self.X[i, :], kTup)
-
-class OptStruct
-{
-public:
-  OptStruct();
-  OptStruct(Mat<ZZ_p> x, Mat<ZZ_p> lb, int c, float t);
-  Mat<ZZ_p> kernelTrans(Mat<ZZ_p> feature, Mat<ZZ_p> line);
-
-private:
-  Mat<ZZ_p> X;        // features of data
-  Mat<ZZ_p> labelMat; // ground-truth labels of data
-  int C;              // soft margin
-  float tol;          // threshold to stop
-  int m;              // lines of data
-  Mat<ZZ_p> alphas;   // the mat of alphs, refer to SVM algo
-  int b;              // default = 0
-  Mat<ZZ_p> eCache;   // the cache
-  Mat<ZZ_p> K;        // the result of kernel function
-};
-
-OptStruct::OptStruct()
-{
-  cout << "nothing input" << endl;
-}
-
-OptStruct::OptStruct(
-    Mat<ZZ_p> x,
-    Mat<ZZ_p> lb,
-    int c = 200,
-    float t = 0.0001)
-    : X(x), labelMat(lb), C(c), tol(t), b(0)
-{
-  // init m, alphas, eCache and K
-  m = x.NumRows();
-  Init(alphas, m, 1);
-  Init(eCache, m, 2);
-  Init(K, m, m);
-  for (int i = 0; i < m; ++i)
+  fs.open(cache(pid, "input_geno").c_str(), ios::out | ios::binary);
+  if (pid > 0)
   {
-    for (int j = 0; j < m; ++j)
+    mpc.ExportSeed(fs, 0);
+  }
+  else
+  {
+    for (int p = 1; p <= 2; p++)
     {
-      K[i][j] = 0; // K[:, i] = kernelTrans(self.X, self.X[i, :])
-      // K = kernelTrans(X, X[i]);
+      mpc.ExportSeed(fs, p);
     }
   }
-  cout << "OptStruct has init" << endl;
-}
 
-// kernel function
-Mat<ZZ_p> OptStruct::kernelTrans(Mat<ZZ_p> feature, Mat<ZZ_p> line)
-{
-  return feature;
+  GwasIterator git(mpc, pid);
+
+  git.Init(true, true);
+
+  long bsize = n / 10;
+
+  cout << "Begin processing:" << endl;
+
+  tic();
+  for (int i = 0; i < n; i++)
+  {
+    Mat<ZZ_p> g;
+    Vec<ZZ_p> miss, p;
+
+    git.GetNextGMP(g, miss, p);
+
+    if (pid > 0)
+    {
+      pheno[i] = p[0];
+      for (int j = 0; j < Param::NUM_COVS; j++)
+      {
+        cov[i][j] = p[1 + j];
+      }
+    }
+
+    // In practice this would be done in one batch
+    Mat<ZZ_p> g_mask;
+    Vec<ZZ_p> miss_mask;
+    mpc.BeaverPartition(g_mask, g);
+    mpc.BeaverPartition(miss_mask, miss);
+
+    if (pid > 0)
+    {
+      // Note: g_mask and miss_mask can be recovered from PRG and
+      // need not be written
+      mpc.WriteToFile(g, fs);
+      mpc.WriteToFile(miss, fs);
+    }
+
+    if ((i + 1) % bsize == 0 || i == n - 1)
+    {
+      cout << "\t" << i + 1 << " / " << n << ", ";
+      toc();
+      tic();
+    }
+  }
+
+  git.Terminate();
+
+  fs.close();
+
+  cout << "Finished writing Beaver partitioned genotype data" << endl;
+
+  if (Param::DEBUG)
+  {
+    cout << "pheno" << endl;
+    mpc.Print(pheno, 5);
+    cout << "cov" << endl;
+    mpc.Print(cov[0], 5);
+  }
+
+  fs.open(cache(pid, "input_pheno_cov").c_str(), ios::out | ios::binary);
+  mpc.WriteToFile(pheno, fs);
+  mpc.WriteToFile(cov, fs);
+  fs.close();
+
+  cout << "Finished writing phenotype and covariate data" << endl;
+
+  return true;
 }
 
 bool svm_protocol(MPCEnv &mpc, int pid)
@@ -3015,76 +3001,8 @@ bool svm_protocol(MPCEnv &mpc, int pid)
   mpc.RandMat(X, X.NumRows(), X.NumCols());
   mpc.RandMat(labels, m, 1);
 
-  OptStruct test = OptStruct(X, labels);
-
-  // the old version
-  //   // parse params
-  //   float C = 200; // Param::NUM_C
-  //   float threshold = 0.0001;
-  //   int max_iter = 10000;
-  //   // default kernel function: linear
-
-  //   // share data
-  //   Mat<ZZ_p> X;
-  //   Mat<ZZ_p> labels;
-
-  //   X.SetDims(100, 5);
-  //   int m = X.NumRows();
-  //   labels.SetDims(100, 1);
-  //   // init data, just for test
-  //   X = 1;
-  //   labels = 0;
-  //   mpc.Transpose(labels); // 1 * m
-
-  //   mpc.RandMat(X, m, 5);
-  //   mpc.RandVec(labels, m);
-
-  //   // init alphas
-  //   Mat<ZZ_p> alphas;
-  //   alphas.SerDims(m, 1); // m * 1
-  //   alphas = 0;
-
-  //   // init kernels results
-  //   Mat<ZZ_p> K;
-  //   K.SetDims(X.NumRows(), X.NumRows());
-  //   K = 0;
-  //   for (int i = 0; i < m; i++) {
-  //       mpc.MultMat(K[i], X, mpc.Transpose(X[i]))
-  //   }
-  //   mpc.Transpose(K)
-
-  //   float b = 0.0;
-
-  //   // tmp_mat
-  //   Mat<ZZ_p> tmp_mat;
-  //   tmp_mat.SetDims(m, m);
-
-  //   // define g_x
-  //   Vec<ZZ_p> gx_i;
-  //   gx_i.SetLength(m, 1);
-
-  //   // SMO solve
-  //   int iter = 0;
-  //   bool entireset = false;
-  //   int alpha_pairs_changed = 0;
-  //   while (iter < max_iter and (alpha_pairs_changed > 0 or entireset)) {
-  //     alpha_pairs_changed = 0;
-  //     if (entireset) {
-  //       for (int i = 0; i < m; i++) {
-  //         // inner L
-  //         // calculate E value
-  //         mpc.MultMat(tmp_mat, alphas, labels);
-  //         mpc.MultMat(gx_i, K[i], tmp_mat);
-  //         gx_i += b;
-  //         E_i = gx_i - labels[i];
-  //         /*
-  //         fXk = float(multiply(oS.alphas, oS.labelMat).T*oS.K[:, k] + oS.b)
-  //         Ek = fXk - float(oS.labelMat[k])
-  //         return Ek
-  //         */
-  //       }
-  //     }
-  //   }
+  MySVM test = MySVM(mpc, pid, X, labels);
+  test.solve();
 
   return true;
 }
